@@ -10,6 +10,8 @@ import {
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
 import type { Asset } from '@/app/types';
+import NewsFeed from './NewsFeed';
+import { ChartSkeleton } from './LoadingSkeletons';
 
 const client = generateClient<Schema>();
 
@@ -215,11 +217,7 @@ export default function StockDetailView({
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <ChartSkeleton />;
   }
 
   const isPositive = (stockData?.percentChange24h || 0) >= 0;
@@ -406,6 +404,14 @@ export default function StockDetailView({
           )}
         </div>
       )}
+
+      {/* News Feed */}
+      <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Latest News
+        </h3>
+        <NewsFeed symbol={symbol} limit={3} />
+      </div>
     </motion.div>
   );
 }

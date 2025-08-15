@@ -9,6 +9,7 @@ import {
 import { LineChart, Line, AreaChart, Area, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
+import { PortfolioSkeleton } from './LoadingSkeletons';
 
 const client = generateClient<Schema>();
 
@@ -157,11 +158,7 @@ export default function Portfolio({ onStockSelect }: PortfolioProps) {
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <PortfolioSkeleton />;
   }
 
   return (

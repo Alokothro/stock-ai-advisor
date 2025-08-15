@@ -5,13 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, TrendingDown, Activity, DollarSign, 
   Search, Bell, Menu, Moon, Sun, ChevronRight,
-  BarChart3, PieChart, Zap, Shield
+  BarChart3, PieChart, Zap, Shield, X
 } from 'lucide-react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
 import SP500Dashboard from './SP500Dashboard';
 import StockDetailView from './StockDetailView';
 import Portfolio from './Portfolio';
+import NewsFeed from './NewsFeed';
+import PriceAlerts from './PriceAlerts';
 
 const client = generateClient<Schema>();
 
@@ -276,8 +278,18 @@ export default function HomePage({ user }: { user: any }) {
                     </motion.div>
                   </div>
 
-                  {/* S&P 500 Dashboard */}
-                  <SP500Dashboard onStockSelect={handleStockSelect} />
+                  {/* Main Content Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* S&P 500 Dashboard - Takes 2 columns */}
+                    <div className="lg:col-span-2">
+                      <SP500Dashboard onStockSelect={handleStockSelect} />
+                    </div>
+                    
+                    {/* News Feed - Takes 1 column */}
+                    <div className="lg:col-span-1">
+                      <NewsFeed limit={5} />
+                    </div>
+                  </div>
                 </>
               )}
               
@@ -297,14 +309,7 @@ export default function HomePage({ user }: { user: any }) {
               )}
               
               {activeView === 'alerts' && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                    Price Alerts
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Set up custom alerts for price movements
-                  </p>
-                </div>
+                <PriceAlerts />
               )}
             </motion.div>
           )}

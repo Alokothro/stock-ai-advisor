@@ -5,6 +5,7 @@ import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
 import { SP500, SECTORS, getSectorStocks } from '../constants/sp500';
 import StockCard from './StockCard';
+import { DashboardSkeleton } from './LoadingSkeletons';
 
 const client = generateClient<Schema>();
 
@@ -186,11 +187,7 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
     .slice(0, 5);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
