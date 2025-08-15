@@ -37,7 +37,13 @@ export default function StockDetailView({
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '3M' | '1Y'>('1M');
   const [chartType, setChartType] = useState<'candle' | 'line' | 'area'>('candle');
   const [loading, setLoading] = useState(true);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<{
+    recommendation?: string;
+    confidenceScore?: number;
+    priceTarget?: number;
+    riskLevel?: string;
+    reasoning?: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchStockData();
@@ -149,7 +155,7 @@ export default function StockDetailView({
 
   const generateMockCandlestickData = (timeframe: string) => {
     const candlesticks: CandlestickData[] = [];
-    const volumes: any[] = [];
+    const volumes: Array<{ time: Time; value: number; color: string }> = [];
     const now = Date.now();
     const basePrice = stockData?.currentPrice || 100;
     
