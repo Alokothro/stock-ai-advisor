@@ -7,6 +7,7 @@ import type { Asset } from '@/app/types';
 import StockCard from './StockCard';
 import SearchBar from './SearchBar';
 import AnalysisModal from './AnalysisModal';
+import SP500Dashboard from './SP500Dashboard';
 
 const client = generateClient<Schema>();
 
@@ -15,7 +16,7 @@ export default function Dashboard() {
   const [watchlist, setWatchlist] = useState<Asset[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'watchlist'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'sp500' | 'portfolio' | 'watchlist'>('sp500');
 
   useEffect(() => {
     fetchData();
