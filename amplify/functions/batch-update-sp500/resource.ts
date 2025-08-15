@@ -5,5 +5,5 @@ export const batchUpdateSP500 = defineFunction({
   entry: './handler.ts',
   timeoutSeconds: 300, // 5 minutes for processing 500 stocks
   memoryMB: 512,
-  schedule: 'rate(5 minutes)', // Run every 5 minutes
+  schedule: 'every 30m', // Run every 30 minutes (more reasonable for production)
 });
