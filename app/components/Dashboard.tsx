@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
+import type { Asset } from '@/app/types';
 import StockCard from './StockCard';
 import SearchBar from './SearchBar';
 import AnalysisModal from './AnalysisModal';
@@ -10,9 +11,9 @@ import AnalysisModal from './AnalysisModal';
 const client = generateClient<Schema>();
 
 export default function Dashboard() {
-  const [portfolio, setPortfolio] = useState<any[]>([]);
-  const [watchlist, setWatchlist] = useState<any[]>([]);
-  const [selectedAsset, setSelectedAsset] = useState<any>(null);
+  const [portfolio, setPortfolio] = useState<Asset[]>([]);
+  const [watchlist, setWatchlist] = useState<Asset[]>([]);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'watchlist'>('portfolio');
 
@@ -25,11 +26,11 @@ export default function Dashboard() {
       setLoading(true);
       // Fetch user's portfolio
       const portfolioData = await client.models.Portfolio.list();
-      setPortfolio(portfolioData.data || []);
+      setPortfolio((portfolioData.data || []) as Asset[]);
       
       // Fetch user's watchlist
       const watchlistData = await client.models.Watchlist.list();
-      setWatchlist(watchlistData.data || []);
+      setWatchlist((watchlistData.data || []) as Asset[]);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -51,7 +52,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleAssetClick = (asset: any) => {
+  const handleAssetClick = (asset: Asset) => {
     setSelectedAsset(asset);
   };
 

@@ -3,41 +3,55 @@
 import { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
+import type { Asset, Analysis } from '@/app/types';
 
 const client = generateClient<Schema>();
 
 interface AnalysisModalProps {
-  asset: any;
+  asset: Asset;
   onClose: () => void;
 }
 
 export default function AnalysisModal({ asset, onClose }: AnalysisModalProps) {
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'technical' | 'ai'>('overview');
 
   useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        setLoading(true);
+        // Fetch latest analysis for this asset
+        const analysisData = await client.models.Analysis.list({
+          filter: { symbol: { eq: asset.symbol } },
+          limit: 1,
+        });
+        
+        if (analysisData.data && analysisData.data.length > 0) {
+          const data = analysisData.data[0];
+          setAnalysis({
+            symbol: data.symbol,
+            recommendation: data.recommendation ?? undefined,
+            confidenceScore: data.confidenceScore ?? undefined,
+            technicalScore: data.technicalScore ?? undefined,
+            fundamentalScore: data.fundamentalScore ?? undefined,
+            sentimentScore: data.sentimentScore ?? undefined,
+            priceTarget: data.priceTarget ?? undefined,
+            stopLoss: data.stopLoss ?? undefined,
+            riskLevel: data.riskLevel ?? undefined,
+            reasoning: data.reasoning ?? undefined,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching analysis:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchAnalysis();
   }, [asset]);
 
-  const fetchAnalysis = async () => {
-    try {
-      setLoading(true);
-      // Fetch latest analysis for this asset
-      const analysisData = await client.models.Analysis.list({
-        filter: { symbol: { eq: asset.symbol } },
-        limit: 1,
-      });
-      
-      if (analysisData.data && analysisData.data.length > 0) {
-        setAnalysis(analysisData.data[0]);
-      }
-    } catch (error) {
-      console.error('Error fetching analysis:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getRecommendationColor = (rec: string) => {
     switch(rec) {
@@ -130,7 +144,7 @@ export default function AnalysisModal({ asset, onClose }: AnalysisModalProps) {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">24h Change</p>
-                      <p className={`text-xl font-bold ${asset.percentChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      <p className={`text-xl font-bold ${(asset.percentChange24h ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {asset.percentChange24h?.toFixed(2) || 0}%
                       </p>
                     </div>
@@ -169,7 +183,7 @@ export default function AnalysisModal({ asset, onClose }: AnalysisModalProps) {
                     <div className="flex justify-between items-center mb-4">
                       <div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">AI Recommendation</p>
-                        <p className={`text-2xl font-bold ${getRecommendationColor(analysis.recommendation)}`}>
+                        <p className={`text-2xl font-bold ${getRecommendationColor(analysis.recommendation || 'HOLD')}`}>
                           {analysis.recommendation?.replace('_', ' ') || 'HOLD'}
                         </p>
                       </div>
@@ -198,7 +212,7 @@ export default function AnalysisModal({ asset, onClose }: AnalysisModalProps) {
 
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Risk Level</p>
-                      <p className={`text-lg font-semibold ${getRiskColor(analysis.riskLevel)}`}>
+                      <p className={`text-lg font-semibold ${getRiskColor(analysis.riskLevel || 'MEDIUM')}`}>
                         {analysis.riskLevel || 'MEDIUM'}
                       </p>
                     </div>
