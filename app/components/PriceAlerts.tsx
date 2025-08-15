@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bell, BellOff, Plus, Trash2, Edit2, TrendingUp, 
-  TrendingDown, Target, AlertTriangle, Check, X
+  TrendingDown, AlertTriangle, Check
 } from 'lucide-react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
@@ -15,13 +15,13 @@ const client = generateClient<Schema>();
 interface Alert {
   id: string;
   symbol: string;
-  condition: 'ABOVE' | 'BELOW' | 'CHANGE_PERCENT';
-  targetValue: number;
+  alertType: 'PRICE_ABOVE' | 'PRICE_BELOW' | 'PERCENT_CHANGE' | 'AI_SIGNAL';
+  threshold: number;
   isActive: boolean;
   createdAt: string;
   triggeredAt?: string;
   currentPrice?: number;
-  notes?: string;
+  message?: string;
 }
 
 interface PriceAlertsProps {
@@ -38,19 +38,12 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
   // Form state
   const [newAlert, setNewAlert] = useState({
     symbol: symbol || '',
-    condition: 'ABOVE' as Alert['condition'],
-    targetValue: 0,
-    notes: ''
+    alertType: 'PRICE_ABOVE' as Alert['alertType'],
+    threshold: 0,
+    message: ''
   });
 
-  useEffect(() => {
-    fetchAlerts();
-    // Check alerts every 30 seconds
-    const interval = setInterval(checkAlerts, 30000);
-    return () => clearInterval(interval);
-  }, [symbol]);
-
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await client.models.Alert.list({
@@ -60,12 +53,12 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
       const alertData = response.data?.map(alert => ({
         id: alert.id,
         symbol: alert.symbol,
-        condition: alert.condition as Alert['condition'],
-        targetValue: alert.targetValue || 0,
+        alertType: (alert.alertType || 'PRICE_ABOVE') as Alert['alertType'],
+        threshold: alert.threshold || 0,
         isActive: alert.isActive ?? true,
         createdAt: alert.createdAt || new Date().toISOString(),
-        triggeredAt: alert.triggeredAt,
-        notes: alert.notes
+        triggeredAt: alert.triggeredAt || undefined,
+        message: alert.message || undefined
       })) || [];
       
       setAlerts(alertData);
@@ -76,39 +69,39 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [symbol]);
 
   const loadMockAlerts = () => {
     const mockAlerts: Alert[] = [
       {
         id: '1',
         symbol: 'AAPL',
-        condition: 'ABOVE',
-        targetValue: 200,
+        alertType: 'PRICE_ABOVE',
+        threshold: 200,
         isActive: true,
         createdAt: new Date().toISOString(),
         currentPrice: 195,
-        notes: 'Potential breakout level'
+        message: 'Potential breakout level'
       },
       {
         id: '2',
         symbol: 'MSFT',
-        condition: 'BELOW',
-        targetValue: 350,
+        alertType: 'PRICE_BELOW',
+        threshold: 350,
         isActive: true,
         createdAt: new Date().toISOString(),
         currentPrice: 360,
-        notes: 'Buy opportunity'
+        message: 'Buy opportunity'
       },
       {
         id: '3',
         symbol: 'GOOGL',
-        condition: 'CHANGE_PERCENT',
-        targetValue: 5,
+        alertType: 'PERCENT_CHANGE',
+        threshold: 5,
         isActive: true,
         createdAt: new Date().toISOString(),
         currentPrice: 2800,
-        notes: 'Volatility alert'
+        message: 'Volatility alert'
       }
     ];
     
@@ -119,7 +112,7 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
     }
   };
 
-  const checkAlerts = async () => {
+  const checkAlerts = useCallback(async () => {
     // In production, this would check current prices against alert conditions
     // and trigger notifications when conditions are met
     for (const alert of alerts) {
@@ -129,15 +122,19 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
       const currentPrice = alert.currentPrice || 100;
       let triggered = false;
       
-      switch (alert.condition) {
-        case 'ABOVE':
-          triggered = currentPrice >= alert.targetValue;
+      switch (alert.alertType) {
+        case 'PRICE_ABOVE':
+          triggered = currentPrice >= alert.threshold;
           break;
-        case 'BELOW':
-          triggered = currentPrice <= alert.targetValue;
+        case 'PRICE_BELOW':
+          triggered = currentPrice <= alert.threshold;
           break;
-        case 'CHANGE_PERCENT':
+        case 'PERCENT_CHANGE':
           // Would calculate percent change from open price
+          triggered = false;
+          break;
+        case 'AI_SIGNAL':
+          // Would check AI signals
           triggered = false;
           break;
       }
@@ -151,12 +148,22 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
         showNotification(updatedAlert);
       }
     }
-  };
+  }, [alerts, onAlertTriggered]);
+
+  useEffect(() => {
+    fetchAlerts();
+  }, [fetchAlerts]);
+
+  useEffect(() => {
+    // Check alerts every 30 seconds
+    const interval = setInterval(checkAlerts, 30000);
+    return () => clearInterval(interval);
+  }, [checkAlerts]);
 
   const showNotification = (alert: Alert) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(`Price Alert: ${alert.symbol}`, {
-        body: `${alert.symbol} has ${alert.condition === 'ABOVE' ? 'risen above' : 'fallen below'} $${alert.targetValue}`,
+        body: `${alert.symbol} has ${alert.alertType === 'PRICE_ABOVE' ? 'risen above' : 'fallen below'} $${alert.threshold}`,
         icon: '/icon.png'
       });
     }
@@ -164,12 +171,12 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
 
   const handleCreateAlert = async () => {
     try {
-      const alert = await client.models.Alert.create({
+      await client.models.Alert.create({
         symbol: newAlert.symbol,
-        condition: newAlert.condition,
-        targetValue: newAlert.targetValue,
+        alertType: newAlert.alertType,
+        threshold: newAlert.threshold,
         isActive: true,
-        notes: newAlert.notes,
+        message: newAlert.message,
         userId: 'current-user'
       });
       
@@ -177,9 +184,9 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
       setShowAddModal(false);
       setNewAlert({
         symbol: symbol || '',
-        condition: 'ABOVE',
-        targetValue: 0,
-        notes: ''
+        alertType: 'PRICE_ABOVE',
+        threshold: 0,
+        message: ''
       });
     } catch (error) {
       console.error('Error creating alert:', error);
@@ -207,25 +214,28 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
     }
   };
 
-  const getConditionIcon = (condition: Alert['condition']) => {
-    switch (condition) {
-      case 'ABOVE':
+  const getConditionIcon = (alertType: Alert['alertType']) => {
+    switch (alertType) {
+      case 'PRICE_ABOVE':
         return <TrendingUp className="w-4 h-4 text-green-500" />;
-      case 'BELOW':
+      case 'PRICE_BELOW':
         return <TrendingDown className="w-4 h-4 text-red-500" />;
-      case 'CHANGE_PERCENT':
+      case 'PERCENT_CHANGE':
+      case 'AI_SIGNAL':
         return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
     }
   };
 
-  const getConditionText = (condition: Alert['condition']) => {
-    switch (condition) {
-      case 'ABOVE':
+  const getConditionText = (alertType: Alert['alertType']) => {
+    switch (alertType) {
+      case 'PRICE_ABOVE':
         return 'rises above';
-      case 'BELOW':
+      case 'PRICE_BELOW':
         return 'falls below';
-      case 'CHANGE_PERCENT':
+      case 'PERCENT_CHANGE':
         return 'changes by';
+      case 'AI_SIGNAL':
+        return 'AI signal';
     }
   };
 
@@ -318,18 +328,18 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
                         <span className="font-semibold text-gray-900 dark:text-white">
                           {alert.symbol}
                         </span>
-                        {getConditionIcon(alert.condition)}
+                        {getConditionIcon(alert.alertType)}
                         <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {getConditionText(alert.condition)}
+                          {getConditionText(alert.alertType)}
                         </span>
                         <span className="font-semibold text-gray-900 dark:text-white">
-                          ${alert.targetValue}
-                          {alert.condition === 'CHANGE_PERCENT' && '%'}
+                          ${alert.threshold}
+                          {alert.alertType === 'PERCENT_CHANGE' && '%'}
                         </span>
                       </div>
-                      {alert.notes && (
+                      {alert.message && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {alert.notes}
+                          {alert.message}
                         </p>
                       )}
                       <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
@@ -411,13 +421,14 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
                     Condition
                   </label>
                   <select
-                    value={editingAlert?.condition || newAlert.condition}
-                    onChange={(e) => setNewAlert({ ...newAlert, condition: e.target.value as Alert['condition'] })}
+                    value={editingAlert?.alertType || newAlert.alertType}
+                    onChange={(e) => setNewAlert({ ...newAlert, alertType: e.target.value as Alert['alertType'] })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="ABOVE">Price rises above</option>
-                    <option value="BELOW">Price falls below</option>
-                    <option value="CHANGE_PERCENT">Price changes by %</option>
+                    <option value="PRICE_ABOVE">Price rises above</option>
+                    <option value="PRICE_BELOW">Price falls below</option>
+                    <option value="PERCENT_CHANGE">Price changes by %</option>
+                    <option value="AI_SIGNAL">AI Signal</option>
                   </select>
                 </div>
                 
@@ -428,8 +439,8 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
                   <input
                     type="number"
                     step="0.01"
-                    value={editingAlert?.targetValue || newAlert.targetValue}
-                    onChange={(e) => setNewAlert({ ...newAlert, targetValue: parseFloat(e.target.value) })}
+                    value={editingAlert?.threshold || newAlert.threshold}
+                    onChange={(e) => setNewAlert({ ...newAlert, threshold: parseFloat(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="100.00"
                   />
@@ -440,8 +451,8 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
                     Notes (Optional)
                   </label>
                   <textarea
-                    value={editingAlert?.notes || newAlert.notes}
-                    onChange={(e) => setNewAlert({ ...newAlert, notes: e.target.value })}
+                    value={editingAlert?.message || newAlert.message}
+                    onChange={(e) => setNewAlert({ ...newAlert, message: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     rows={2}
                     placeholder="Add notes about this alert..."
