@@ -91,20 +91,18 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
       
       setStocks(enrichedStocks);
       
-      // Fetch market summary
-      const summaryResponse = await client.models.MarketData.get({ 
-        symbol: 'SP500_SUMMARY' 
-      });
+      // Calculate market summary from actual stock data
+      const gainers = enrichedStocks.filter(s => (s.percentChange24h ?? 0) > 0).length;
+      const losers = enrichedStocks.filter(s => (s.percentChange24h ?? 0) < 0).length;
+      const unchanged = enrichedStocks.filter(s => (s.percentChange24h ?? 0) === 0).length;
       
-      if (summaryResponse.data) {
-        setMarketSummary({
-          marketStatus: summaryResponse.data.marketStatus || 'UNKNOWN',
-          gainers: summaryResponse.data.gainers || 0,
-          losers: summaryResponse.data.losers || 0,
-          unchanged: summaryResponse.data.unchanged || 0,
-          lastUpdated: summaryResponse.data.lastUpdated || new Date().toISOString(),
-        });
-      }
+      setMarketSummary({
+        marketStatus: 'OPEN', // You can determine this based on current time
+        gainers,
+        losers,
+        unchanged,
+        lastUpdated: new Date().toISOString(),
+      });
     } catch (error) {
       console.error('Error fetching S&P 500 data:', error);
       // Load mock data if API fails
@@ -136,7 +134,18 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
             const updated = [...prevStocks];
             const index = updated.findIndex(s => s.symbol === data.symbol);
             if (index >= 0) {
-              updated[index] = { ...updated[index], ...data };
+              const sp500Stock = SP500.find(s => s.symbol === data.symbol);
+              updated[index] = {
+                ...updated[index],
+                symbol: data.symbol,
+                name: sp500Stock?.name || data.name || data.symbol,
+                sector: sp500Stock?.sector || 'Unknown',
+                currentPrice: data.currentPrice ?? undefined,
+                priceChange24h: data.priceChange24h ?? undefined,
+                percentChange24h: data.percentChange24h ?? undefined,
+                volume: data.volume ?? undefined,
+                marketCap: data.marketCap ?? undefined,
+              };
             }
             return updated;
           });
@@ -350,7 +359,7 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
             <StockCard
               key={stock.symbol}
               symbol={stock.symbol}
-              name={stock.name}
+              name={stock.name || stock.symbol}
               price={stock.currentPrice || 0}
               change={stock.priceChange24h || 0}
               changePercent={stock.percentChange24h || 0}

@@ -43,7 +43,7 @@ export default function Home() {
               </div>
             </div>
           </header>
-          <HomePage user={user} />
+          <HomePage user={user || {}} />
         </div>
       )}
     </Authenticator>
