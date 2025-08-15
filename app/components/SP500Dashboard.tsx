@@ -61,13 +61,31 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
       
       const stockData = response.data || [];
       
-      // Map to include sector information
-      const enrichedStocks = stockData.map(stock => {
+      // Map to include sector information and convert Nullable types to undefined
+      const enrichedStocks: Array<{
+        symbol: string;
+        name?: string;
+        sector?: string;
+        currentPrice?: number;
+        priceChange24h?: number;
+        percentChange24h?: number;
+        volume?: number;
+        marketCap?: number;
+        [key: string]: unknown;
+      }> = stockData.map(stock => {
         const sp500Stock = SP500.find(s => s.symbol === stock.symbol);
         return {
-          ...stock,
-          sector: sp500Stock?.sector || 'Unknown',
+          symbol: stock.symbol,
           name: sp500Stock?.name || stock.name || stock.symbol,
+          sector: sp500Stock?.sector || 'Unknown',
+          currentPrice: stock.currentPrice ?? undefined,
+          priceChange24h: stock.priceChange24h ?? undefined,
+          percentChange24h: stock.percentChange24h ?? undefined,
+          volume: stock.volume ?? undefined,
+          marketCap: stock.marketCap ?? undefined,
+          openPrice: stock.openPrice ?? undefined,
+          highPrice: stock.highPrice ?? undefined,
+          lowPrice: stock.lowPrice ?? undefined,
         };
       });
       
