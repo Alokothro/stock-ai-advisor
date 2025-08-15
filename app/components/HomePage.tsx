@@ -17,7 +17,7 @@ import PriceAlerts from './PriceAlerts';
 
 const client = generateClient<Schema>();
 
-export default function HomePage({ user }: { user: any }) {
+export default function HomePage({ user }: { user: { userId?: string; email?: string; signInDetails?: { loginId?: string } } }) {
   const [activeView, setActiveView] = useState<'market' | 'portfolio' | 'watchlist' | 'alerts'>('market');
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
@@ -201,7 +201,7 @@ export default function HomePage({ user }: { user: any }) {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveView(tab.id as any)}
+                onClick={() => setActiveView(tab.id as 'market' | 'portfolio' | 'watchlist' | 'alerts')}
                 className={`flex items-center space-x-2 py-4 border-b-2 transition-colors ${
                   activeView === tab.id
                     ? 'border-blue-500 text-blue-500'
@@ -258,7 +258,7 @@ export default function HomePage({ user }: { user: any }) {
                     >
                       <TrendingUp className="w-8 h-8 mb-2" />
                       <h3 className="font-semibold">Top Gainers</h3>
-                      <p className="text-sm opacity-90 mt-1">Today\'s best performers</p>
+                      <p className="text-sm opacity-90 mt-1">Today&apos;s best performers</p>
                     </motion.div>
                     <motion.div
                       whileHover={{ scale: 1.02 }}

@@ -22,8 +22,8 @@ interface SP500DashboardProps {
 }
 
 export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
-  const [stocks, setStocks] = useState<any[]>([]);
-  const [filteredStocks, setFilteredStocks] = useState<any[]>([]);
+  const [stocks, setStocks] = useState<Array<{ symbol: string; name?: string; sector?: string; currentPrice?: number; priceChange24h?: number; percentChange24h?: number; volume?: number; marketCap?: number; [key: string]: unknown }>>([]);
+  const [filteredStocks, setFilteredStocks] = useState<Array<{ symbol: string; name?: string; sector?: string; currentPrice?: number; priceChange24h?: number; percentChange24h?: number; volume?: number; marketCap?: number; [key: string]: unknown }>>([]);
   const [selectedSector, setSelectedSector] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'symbol' | 'change' | 'volume'>('change');
@@ -256,7 +256,7 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
           {/* Sort By */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as 'symbol' | 'change' | 'volume')}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
           >
             <option value="change">Sort by Change %</option>
