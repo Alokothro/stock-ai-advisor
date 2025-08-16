@@ -71,6 +71,40 @@ export default function StockDetailView({
     updateChartData();
   }, [timeframe, chartType]);
 
+  const fetchFreshAIAnalysis = async () => {
+    try {
+      // Get the API endpoint from amplify_outputs
+      const apiEndpoint = process.env.NEXT_PUBLIC_AI_API_ENDPOINT || 'https://your-api-gateway-url/analyze';
+      
+      const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbol }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.analysis) {
+          setAnalysis(data.analysis);
+        }
+      } else {
+        console.error('Failed to fetch AI analysis:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching AI analysis:', error);
+      // Fallback to mock analysis if API fails
+      setAnalysis({
+        recommendation: 'HOLD',
+        confidenceScore: 75,
+        priceTarget: (stockData?.currentPrice || 100) * 1.1,
+        riskLevel: 'MEDIUM',
+        reasoning: 'Based on current market conditions and technical indicators.',
+      });
+    }
+  };
+
   const fetchStockData = async () => {
     try {
       setLoading(true);
@@ -79,20 +113,33 @@ export default function StockDetailView({
         setStockData(response.data as any);
       }
       
-      // Fetch AI analysis
+      // Try to fetch existing AI analysis first
       const analysisResponse = await client.models.Analysis.list({
         filter: { symbol: { eq: symbol } },
         limit: 1,
       });
+      
       if (analysisResponse.data && analysisResponse.data.length > 0) {
         const analysisData = analysisResponse.data[0];
-        setAnalysis({
-          recommendation: analysisData.recommendation ?? undefined,
-          confidenceScore: analysisData.confidenceScore ?? undefined,
-          priceTarget: analysisData.priceTarget ?? undefined,
-          riskLevel: analysisData.riskLevel ?? undefined,
-          reasoning: analysisData.reasoning ?? undefined,
-        });
+        // Check if analysis is recent (within last hour)
+        const analysisAge = Date.now() - new Date(analysisData.timestamp).getTime();
+        const oneHour = 60 * 60 * 1000;
+        
+        if (analysisAge < oneHour) {
+          setAnalysis({
+            recommendation: analysisData.recommendation ?? undefined,
+            confidenceScore: analysisData.confidenceScore ?? undefined,
+            priceTarget: analysisData.priceTarget ?? undefined,
+            riskLevel: analysisData.riskLevel ?? undefined,
+            reasoning: analysisData.reasoning ?? undefined,
+          });
+        } else {
+          // Analysis is stale, fetch new one
+          await fetchFreshAIAnalysis();
+        }
+      } else {
+        // No existing analysis, fetch new one
+        await fetchFreshAIAnalysis();
       }
     } catch (error) {
       console.error('Error fetching stock data:', error);
