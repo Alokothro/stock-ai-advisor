@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { generateClient } from 'aws-amplify/data';
-import type { Schema } from '@/amplify/data/resource';
+// import { generateClient } from 'aws-amplify/data';
+// import type { Schema } from '@/amplify/data/resource';
 import { SP500, SECTORS, getSectorStocks } from '../constants/sp500';
 import StockCard from './StockCard';
 import { DashboardSkeleton } from './LoadingSkeletons';
 
-const client = generateClient<Schema>();
+// const client = generateClient<Schema>();
 
 interface MarketSummary {
   marketStatus: string;
@@ -34,13 +34,13 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
   useEffect(() => {
     fetchSP500Data();
     // Set up real-time subscription
-    const subscription = subscribeToUpdates();
+    // const subscription = subscribeToUpdates();
     
     // Refresh every 30 seconds
     const interval = setInterval(fetchSP500Data, 30000);
     
     return () => {
-      subscription?.unsubscribe();
+      // subscription?.unsubscribe();
       clearInterval(interval);
     };
   }, []);
@@ -53,16 +53,8 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
     try {
       setLoading(true);
       
-      // Fetch all S&P 500 stocks from MarketData table
-      const response = await client.models.MarketData.list({
-        filter: { assetType: { eq: 'STOCK' } },
-        limit: 500,
-      });
-      
-      const stockData = response.data || [];
-      
-      // Map to include sector information and convert Nullable types to undefined
-      const enrichedStocks: Array<{
+      // Skip database, use S&P 500 list directly
+      let enrichedStocks: Array<{
         symbol: string;
         name?: string;
         sector?: string;
@@ -72,23 +64,65 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
         volume?: number;
         marketCap?: number;
         [key: string]: unknown;
-      }> = stockData.map(stock => {
-        const sp500Stock = SP500.find(s => s.symbol === stock.symbol);
-        return {
-          symbol: stock.symbol,
-          name: sp500Stock?.name || stock.name || stock.symbol,
-          sector: sp500Stock?.sector || 'Unknown',
-          currentPrice: stock.currentPrice ?? undefined,
-          priceChange24h: stock.priceChange24h ?? undefined,
-          percentChange24h: stock.percentChange24h ?? undefined,
-          volume: stock.volume ?? undefined,
-          marketCap: stock.marketCap ?? undefined,
-          openPrice: stock.openPrice ?? undefined,
-          highPrice: stock.highPrice ?? undefined,
-          lowPrice: stock.lowPrice ?? undefined,
-        };
+      }> = [];
+      
+      // For demo, let's fetch real prices for top 10 stocks from Finnhub
+      const topSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BRK.B', 'JPM', 'JNJ'];
+      const realPrices = new Map();
+      
+      try {
+        const response = await fetch('/api/finnhub/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbols: topSymbols }),
+        });
+        
+        if (response.ok) {
+          const quotes = await response.json();
+          quotes.forEach((quote: any) => {
+            realPrices.set(quote.symbol, quote);
+          });
+        }
+      } catch (err) {
+        console.log('Could not fetch real prices, using mock data');
+      }
+      
+      // Create stock list from S&P 500 constants
+      enrichedStocks = SP500.map(stock => {
+        const realData = realPrices.get(stock.symbol);
+        
+        if (realData) {
+          return {
+            symbol: stock.symbol,
+            name: stock.name,
+            sector: stock.sector,
+            currentPrice: realData.currentPrice,
+            priceChange24h: realData.priceChange24h,
+            percentChange24h: realData.percentChange24h,
+            volume: 0,
+            marketCap: 0,
+            openPrice: realData.openPrice,
+            highPrice: realData.highPrice,
+            lowPrice: realData.lowPrice,
+          };
+        } else {
+          // Mock data for stocks we don't have real prices for
+          const basePrice = 100 + Math.random() * 400;
+          const change = (Math.random() - 0.5) * 20;
+          return {
+            symbol: stock.symbol,
+            name: stock.name,
+            sector: stock.sector,
+            currentPrice: basePrice,
+            priceChange24h: change,
+            percentChange24h: (change / basePrice) * 100,
+            volume: Math.floor(Math.random() * 10000000),
+            marketCap: Math.floor(Math.random() * 1000000000000),
+          };
+        }
       });
       
+      console.log('Setting stocks:', enrichedStocks.length);
       setStocks(enrichedStocks);
       
       // Calculate market summary from actual stock data
@@ -126,37 +160,37 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
     setStocks(mockStocks);
   };
 
-  const subscribeToUpdates = () => {
-    try {
-      return client.models.MarketData.onUpdate().subscribe({
-        next: (data) => {
-          setStocks(prevStocks => {
-            const updated = [...prevStocks];
-            const index = updated.findIndex(s => s.symbol === data.symbol);
-            if (index >= 0) {
-              const sp500Stock = SP500.find(s => s.symbol === data.symbol);
-              updated[index] = {
-                ...updated[index],
-                symbol: data.symbol,
-                name: sp500Stock?.name || data.name || data.symbol,
-                sector: sp500Stock?.sector || 'Unknown',
-                currentPrice: data.currentPrice ?? undefined,
-                priceChange24h: data.priceChange24h ?? undefined,
-                percentChange24h: data.percentChange24h ?? undefined,
-                volume: data.volume ?? undefined,
-                marketCap: data.marketCap ?? undefined,
-              };
-            }
-            return updated;
-          });
-        },
-        error: (error) => console.error('Subscription error:', error),
-      });
-    } catch (error) {
-      console.error('Failed to subscribe:', error);
-      return null;
-    }
-  };
+  // const subscribeToUpdates = () => {
+  //   try {
+  //     return client.models.MarketData.onUpdate().subscribe({
+  //       next: (data) => {
+  //         setStocks(prevStocks => {
+  //           const updated = [...prevStocks];
+  //           const index = updated.findIndex(s => s.symbol === data.symbol);
+  //           if (index >= 0) {
+  //             const sp500Stock = SP500.find(s => s.symbol === data.symbol);
+  //             updated[index] = {
+  //               ...updated[index],
+  //               symbol: data.symbol,
+  //               name: sp500Stock?.name || data.name || data.symbol,
+  //               sector: sp500Stock?.sector || 'Unknown',
+  //               currentPrice: data.currentPrice ?? undefined,
+  //               priceChange24h: data.priceChange24h ?? undefined,
+  //               percentChange24h: data.percentChange24h ?? undefined,
+  //               volume: data.volume ?? undefined,
+  //               marketCap: data.marketCap ?? undefined,
+  //             };
+  //           }
+  //           return updated;
+  //         });
+  //       },
+  //       error: (error) => console.error('Subscription error:', error),
+  //     });
+  //   } catch (error) {
+  //     console.error('Failed to subscribe:', error);
+  //     return null;
+  //   }
+  // };
 
   const filterAndSortStocks = () => {
     let filtered = [...stocks];
@@ -188,6 +222,7 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
       }
     });
     
+    console.log('Filtered stocks:', filtered.length, 'from', stocks.length);
     setFilteredStocks(filtered);
   };
 

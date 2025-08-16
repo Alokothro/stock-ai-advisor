@@ -5,8 +5,9 @@ import { SP500 } from '../../../app/constants/sp500';
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
-// Free API that provides stock data (alternatives: finnhub.io, twelve data, polygon.io)
-const YAHOO_FINANCE_API = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+// Finnhub API configuration
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '***REMOVED***';
+const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 
 interface StockPrice {
   symbol: string;
@@ -24,35 +25,38 @@ interface StockPrice {
 
 async function fetchStockPrice(symbol: string): Promise<StockPrice | null> {
   try {
-    // Yahoo Finance API (free, no key required)
-    const response = await fetch(`${YAHOO_FINANCE_API}${symbol}`);
+    // Finnhub API call for real-time quote
+    const response = await fetch(
+      `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
+    );
+    
+    if (!response.ok) {
+      console.error(`Finnhub API error for ${symbol}: ${response.status}`);
+      throw new Error(`API error: ${response.status}`);
+    }
+    
     const data = await response.json();
     
-    if (data.chart?.result?.[0]) {
-      const result = data.chart.result[0];
-      const quote = result.meta;
-      const previousClose = quote.previousClose || quote.chartPreviousClose;
-      const currentPrice = quote.regularMarketPrice;
-      
+    // Finnhub returns: c (current), o (open), h (high), l (low), pc (previous close), d (change), dp (change %)
+    if (data && data.c) {
       return {
         symbol: symbol,
-        price: currentPrice,
-        previousClose: previousClose,
-        change: currentPrice - previousClose,
-        changePercent: ((currentPrice - previousClose) / previousClose) * 100,
-        volume: quote.regularMarketVolume || 0,
-        marketCap: quote.marketCap || 0,
-        high: quote.regularMarketDayHigh || currentPrice,
-        low: quote.regularMarketDayLow || currentPrice,
-        open: quote.regularMarketOpen || previousClose,
+        price: data.c,
+        previousClose: data.pc,
+        change: data.d,
+        changePercent: data.dp,
+        volume: 0, // Finnhub doesn't provide volume in quote endpoint
+        high: data.h,
+        low: data.l,
+        open: data.o,
         timestamp: new Date().toISOString(),
       };
     }
   } catch (error) {
-    console.error(`Error fetching price for ${symbol}:`, error);
+    console.error(`Error fetching Finnhub price for ${symbol}:`, error);
   }
   
-  // Return mock data if API fails
+  // Return mock data if API fails (for development/testing)
   return {
     symbol,
     price: 100 + Math.random() * 400,
@@ -68,7 +72,7 @@ async function fetchStockPrice(symbol: string): Promise<StockPrice | null> {
 }
 
 async function batchUpdatePrices(stocks: string[]): Promise<void> {
-  const batchSize = 25; // DynamoDB batch write limit
+  const batchSize = 10; // Smaller batch for Finnhub rate limits (60 calls/minute)
   const batches = [];
   
   for (let i = 0; i < stocks.length; i += batchSize) {
@@ -76,31 +80,37 @@ async function batchUpdatePrices(stocks: string[]): Promise<void> {
   }
   
   for (const batch of batches) {
-    const pricePromises = batch.map(symbol => fetchStockPrice(symbol));
-    const prices = await Promise.all(pricePromises);
+    // Process stocks sequentially with delay to respect rate limits
+    const prices = [];
+    for (const symbol of batch) {
+      const price = await fetchStockPrice(symbol);
+      if (price) prices.push(price);
+      
+      // Rate limiting: 60 calls/minute = 1 call per second
+      // Add 1100ms delay to be safe (roughly 54 calls/minute)
+      await new Promise(resolve => setTimeout(resolve, 1100));
+    }
     
-    const items = prices
-      .filter(price => price !== null)
-      .map(price => ({
-        PutRequest: {
-          Item: {
-            symbol: price!.symbol,
-            assetType: 'STOCK',
-            name: SP500.find(s => s.symbol === price!.symbol)?.name || price!.symbol,
-            currentPrice: price!.price,
-            openPrice: price!.open,
-            highPrice: price!.high,
-            lowPrice: price!.low,
-            closePrice: price!.previousClose,
-            volume: price!.volume,
-            marketCap: price!.marketCap,
-            priceChange24h: price!.change,
-            percentChange24h: price!.changePercent,
-            lastUpdated: price!.timestamp,
-            sector: SP500.find(s => s.symbol === price!.symbol)?.sector || 'Unknown',
-          }
+    const items = prices.map(price => ({
+      PutRequest: {
+        Item: {
+          symbol: price.symbol,
+          assetType: 'STOCK',
+          name: SP500.find(s => s.symbol === price.symbol)?.name || price.symbol,
+          currentPrice: price.price,
+          openPrice: price.open,
+          highPrice: price.high,
+          lowPrice: price.low,
+          closePrice: price.previousClose,
+          volume: price.volume,
+          marketCap: price.marketCap,
+          priceChange24h: price.change,
+          percentChange24h: price.changePercent,
+          lastUpdated: price.timestamp,
+          sector: SP500.find(s => s.symbol === price.symbol)?.sector || 'Unknown',
         }
-      }));
+      }
+    }));
     
     if (items.length > 0) {
       try {
@@ -114,9 +124,6 @@ async function batchUpdatePrices(stocks: string[]): Promise<void> {
         console.error('Error batch writing to DynamoDB:', error);
       }
     }
-    
-    // Rate limiting - wait 100ms between batches
-    await new Promise(resolve => setTimeout(resolve, 100));
   }
 }
 
