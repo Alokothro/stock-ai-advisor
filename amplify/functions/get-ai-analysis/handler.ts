@@ -2,7 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import Anthropic from '@anthropic-ai/sdk';
-import type { APIGatewayProxyHandler } from 'aws-lambda';
+import type { Handler } from 'aws-lambda';
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -130,7 +130,8 @@ async function generateAIAnalysis(symbol: string, stockData: any, historicalData
   });
   
   try {
-    const analysisText = message.content[0].text;
+    const content = message.content[0];
+    const analysisText = content.type === 'text' ? content.text : '';
     const analysis = JSON.parse(analysisText);
     
     // Save to DynamoDB
@@ -180,7 +181,7 @@ async function generateAIAnalysis(symbol: string, stockData: any, historicalData
   }
 }
 
-export const handler: APIGatewayProxyHandler = async (event) => {
+export const handler: Handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',

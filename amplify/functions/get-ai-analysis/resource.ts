@@ -7,6 +7,6 @@ export const getAIAnalysis = defineFunction({
   timeoutSeconds: 30,
   memoryMB: 512,
   environment: {
-    // This will be set via backend.ts
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '***REMOVED******REMOVED***'
   }
 });

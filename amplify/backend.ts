@@ -1,13 +1,10 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
-import { batchUpdateSP500 } from './functions/batch-update-sp500/resource';
+// import { batchUpdateSP500 } from './functions/batch-update-sp500/resource';
 import { getAIAnalysis } from './functions/get-ai-analysis/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
-import { Stack } from 'aws-cdk-lib';
-import { CorsHttpMethod, HttpApi } from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 // import { getMarketData } from './functions/get-market-data/resource';
 // import { analyzeAsset } from './functions/analyze-asset/resource';
 // import { getAIRecommendation } from './functions/get-ai-recommendation/resource';
@@ -18,24 +15,24 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 const backend = defineBackend({
   auth,
   data,
-  batchUpdateSP500,
+  // batchUpdateSP500,
   getAIAnalysis,
 });
 
 // Grant the batch update function access to the MarketData table
-backend.batchUpdateSP500.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: [
-      'dynamodb:PutItem',
-      'dynamodb:GetItem',
-      'dynamodb:UpdateItem',
-      'dynamodb:BatchWriteItem',
-      'dynamodb:Query',
-      'dynamodb:Scan'
-    ],
-    resources: ['*']
-  })
-);
+// backend.batchUpdateSP500.resources.lambda.addToRolePolicy(
+//   new PolicyStatement({
+//     actions: [
+//       'dynamodb:PutItem',
+//       'dynamodb:GetItem',
+//       'dynamodb:UpdateItem',
+//       'dynamodb:BatchWriteItem',
+//       'dynamodb:Query',
+//       'dynamodb:Scan'
+//     ],
+//     resources: ['*']
+//   })
+// );
 
 // Grant AI analysis function permissions
 backend.getAIAnalysis.resources.lambda.addToRolePolicy(
@@ -51,43 +48,19 @@ backend.getAIAnalysis.resources.lambda.addToRolePolicy(
   })
 );
 
-// Add environment variables for AI analysis
-// NOTE: In production, use AWS Secrets Manager instead of environment variables
-backend.getAIAnalysis.resources.lambda.addEnvironment(
-  'ANTHROPIC_API_KEY',
-  process.env.ANTHROPIC_API_KEY || '***REMOVED******REMOVED***'
-);
-
-// Add table name environment variables
-backend.getAIAnalysis.resources.lambda.addEnvironment(
-  'MARKET_DATA_TABLE_NAME',
-  backend.data.resources.tables['MarketData'].tableName
-);
-
-backend.getAIAnalysis.resources.lambda.addEnvironment(
-  'ANALYSIS_TABLE_NAME',
-  backend.data.resources.tables['Analysis'].tableName
-);
-
-// Create HTTP API for AI analysis
-const apiStack = Stack.of(backend.getAIAnalysis.resources.lambda);
-const httpApi = new HttpApi(apiStack, 'AIAnalysisApi', {
-  apiName: 'ai-analysis-api',
-  corsPreflight: {
-    allowHeaders: ['*'],
-    allowMethods: [CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
-    allowOrigins: ['*'],
+// Add function URL for AI analysis Lambda
+const functionUrl = backend.getAIAnalysis.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+  cors: {
+    allowedOrigins: ['*'],
+    allowedMethods: [HttpMethod.POST],
+    allowedHeaders: ['*'],
   },
 });
 
-// Add route for AI analysis
-const aiAnalysisIntegration = new HttpLambdaIntegration(
-  'AIAnalysisIntegration',
-  backend.getAIAnalysis.resources.lambda
-);
-
-httpApi.addRoutes({
-  path: '/analyze',
-  methods: [CorsHttpMethod.POST],
-  integration: aiAnalysisIntegration,
+// Output the function URL
+backend.addOutput({
+  custom: {
+    AI_API_ENDPOINT: functionUrl.url,
+  },
 });
