@@ -1,6 +1,6 @@
 import { SQSEvent, SQSRecord } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, PutItemCommand, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand, PutCommand, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import OpenAI from 'openai';
 
@@ -151,7 +151,7 @@ async function generatePortfolioAnalysis(stockData: StockData[], alertPreference
 }
 
 async function saveAnalysisHistory(userId: string, analysis: string | null, stockData: StockData[]) {
-  const command = new PutItemCommand({
+  const command = new PutCommand({
     TableName: ANALYSIS_HISTORY_TABLE,
     Item: {
       userId,
