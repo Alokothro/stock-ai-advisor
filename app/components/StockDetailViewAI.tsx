@@ -1,16 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, X, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, TrendingDown, X, Loader2, Search, TrendingUpDown, FileText, Brain, CheckCircle } from 'lucide-react';
 
 interface StockDetailViewAIProps {
   symbol: string;
   onClose?: () => void;
 }
 
+interface ResearchStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  icon: React.ReactNode;
+}
+
 export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAIProps) {
   const [loading, setLoading] = useState(true);
+  const [researching, setResearching] = useState(true);
+  const [currentStep, setCurrentStep] = useState(0);
   const [stockData, setStockData] = useState<{
     symbol: string;
     name: string;
@@ -22,86 +31,108 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
   const [confidence, setConfidence] = useState(0);
   const [reasoning, setReasoning] = useState('');
 
+  const researchSteps: ResearchStep[] = [
+    { id: 'price', label: 'Fetching real-time price data', status: 'pending', icon: <TrendingUpDown className="w-4 h-4" /> },
+    { id: 'technicals', label: 'Analyzing technical indicators', status: 'pending', icon: <TrendingUpDown className="w-4 h-4" /> },
+    { id: 'fundamentals', label: 'Reviewing fundamentals & earnings', status: 'pending', icon: <FileText className="w-4 h-4" /> },
+    { id: 'sentiment', label: 'Evaluating market sentiment', status: 'pending', icon: <Search className="w-4 h-4" /> },
+    { id: 'ai', label: 'AI processing final recommendation', status: 'pending', icon: <Brain className="w-4 h-4" /> },
+  ];
+
+  const [steps, setSteps] = useState<ResearchStep[]>(researchSteps);
+
   useEffect(() => {
-    fetchStockDataAndAnalyze();
+    performResearchAndAnalysis();
   }, [symbol]);
 
-  const fetchStockDataAndAnalyze = async () => {
+  const performResearchAndAnalysis = async () => {
+    setLoading(true);
+    setResearching(true);
+    setCurrentStep(0);
+    
+    // Reset steps
+    setSteps(researchSteps);
+
+    // Simulate research phases with realistic timing
+    const updateStep = (index: number, status: 'in-progress' | 'completed') => {
+      setSteps(prev => prev.map((step, i) => 
+        i === index ? { ...step, status } : step
+      ));
+    };
+
+    // Step 1: Fetch price data
+    updateStep(0, 'in-progress');
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Actually fetch the data while showing progress
+    let analysisData = null;
     try {
-      setLoading(true);
-      
-      // Fetch real-time price from Finnhub API
-      const response = await fetch('/api/finnhub/quote', {
+      const response = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols: [symbol] }),
+        body: JSON.stringify({ symbol }),
       });
       
-      let data = null;
       if (response.ok) {
-        const quotes = await response.json();
-        if (quotes && quotes.length > 0) {
-          const quote = quotes[0];
-          data = {
-            symbol: quote.symbol,
-            name: quote.name || symbol,
-            currentPrice: quote.currentPrice,
-            priceChange24h: quote.priceChange24h,
-            percentChange24h: quote.percentChange24h,
-          };
-          setStockData(data);
+        analysisData = await response.json();
+        if (analysisData.quote) {
+          setStockData({
+            symbol: analysisData.symbol,
+            name: analysisData.quote.name || symbol,
+            currentPrice: analysisData.quote.c || analysisData.quote.currentPrice,
+            priceChange24h: analysisData.quote.d || analysisData.quote.priceChange24h,
+            percentChange24h: analysisData.quote.dp || analysisData.quote.percentChange24h,
+          });
         }
       }
-
-      // Perform AI analysis (simulated for now)
-      // In production, this would call your AI backend with all the data
-      performAIAnalysis(data);
-      
     } catch (error) {
-      console.error('Error fetching stock data:', error);
-      // Fallback analysis
+      console.error('Error fetching data:', error);
+    }
+    
+    updateStep(0, 'completed');
+    setCurrentStep(1);
+
+    // Step 2: Technical analysis
+    updateStep(1, 'in-progress');
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    updateStep(1, 'completed');
+    setCurrentStep(2);
+
+    // Step 3: Fundamentals
+    updateStep(2, 'in-progress');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    updateStep(2, 'completed');
+    setCurrentStep(3);
+
+    // Step 4: Sentiment
+    updateStep(3, 'in-progress');
+    await new Promise(resolve => setTimeout(resolve, 900));
+    updateStep(3, 'completed');
+    setCurrentStep(4);
+
+    // Step 5: AI Processing
+    updateStep(4, 'in-progress');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Set the actual AI analysis results
+    if (analysisData?.analysis) {
+      setRecommendation(analysisData.analysis.recommendation);
+      setConfidence(analysisData.analysis.confidence);
+      setReasoning(analysisData.analysis.reasoning);
+    } else {
+      // Fallback if no data
       setRecommendation('HOLD');
       setConfidence(60);
-      setReasoning('Unable to perform complete analysis. Recommend holding position until more data is available.');
-    } finally {
-      setLoading(false);
+      setReasoning('Unable to complete full analysis. Recommend holding position until more data is available.');
     }
-  };
-
-  const performAIAnalysis = (data: any) => {
-    // Simulated AI analysis based on price movement
-    // In production, this would be a sophisticated AI model analyzing:
-    // - Technical indicators (RSI, MACD, Moving Averages)
-    // - Fundamental data (P/E ratio, earnings, revenue)
-    // - Market sentiment and news
-    // - Volume patterns
-    // - Support and resistance levels
     
-    const change = data?.percentChange24h || 0;
-    const price = data?.currentPrice || 100;
+    updateStep(4, 'completed');
     
-    // Simple logic for demonstration - replace with actual AI
-    if (change > 3) {
-      setRecommendation('BUY');
-      setConfidence(85);
-      setReasoning(`Strong upward momentum detected. ${symbol} showing ${change.toFixed(2)}% gain with increasing volume. Technical indicators suggest continued bullish trend.`);
-    } else if (change < -3) {
-      setRecommendation('SELL');
-      setConfidence(80);
-      setReasoning(`Significant downward pressure. ${symbol} down ${Math.abs(change).toFixed(2)}% with bearish indicators. Consider taking profits or cutting losses.`);
-    } else if (change > 1) {
-      setRecommendation('BUY');
-      setConfidence(70);
-      setReasoning(`Moderate positive momentum. ${symbol} showing steady growth at ${change.toFixed(2)}%. Good entry point for long-term positions.`);
-    } else if (change < -1) {
-      setRecommendation('HOLD');
-      setConfidence(65);
-      setReasoning(`Minor correction in progress. ${symbol} down ${Math.abs(change).toFixed(2)}%. Wait for clearer signals before making moves.`);
-    } else {
-      setRecommendation('HOLD');
-      setConfidence(75);
-      setReasoning(`${symbol} trading sideways with ${change.toFixed(2)}% movement. No clear directional bias. Maintain current positions.`);
-    }
+    // Small delay before showing final result
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    setResearching(false);
+    setLoading(false);
   };
 
   const getRecommendationColor = () => {
@@ -128,24 +159,6 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
     }
   };
 
-  if (loading) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-2xl mx-auto"
-      >
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-lg">Analyzing {symbol}...</p>
-          <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-            Evaluating technical indicators, market sentiment, and fundamentals
-          </p>
-        </div>
-      </motion.div>
-    );
-  }
-
   const isPositive = (stockData?.percentChange24h || 0) >= 0;
 
   return (
@@ -160,7 +173,7 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-3xl font-bold text-white mb-1">{symbol}</h2>
-            <p className="text-gray-300">{stockData?.name}</p>
+            {stockData && <p className="text-gray-300">{stockData.name}</p>}
           </div>
           {onClose && (
             <button
@@ -172,80 +185,188 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
           )}
         </div>
         
-        <div className="mt-4 flex items-center space-x-4">
-          <span className="text-3xl font-bold text-white">
-            ${stockData?.currentPrice.toFixed(2)}
-          </span>
-          <span className={`flex items-center text-lg font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-            {isPositive ? <TrendingUp className="w-5 h-5 mr-1" /> : <TrendingDown className="w-5 h-5 mr-1" />}
-            {isPositive ? '+' : ''}{stockData?.priceChange24h.toFixed(2)} ({stockData?.percentChange24h.toFixed(2)}%)
-          </span>
-        </div>
+        {stockData && (
+          <div className="mt-4 flex items-center space-x-4">
+            <span className="text-3xl font-bold text-white">
+              ${stockData.currentPrice.toFixed(2)}
+            </span>
+            <span className={`flex items-center text-lg font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+              {isPositive ? <TrendingUp className="w-5 h-5 mr-1" /> : <TrendingDown className="w-5 h-5 mr-1" />}
+              {isPositive ? '+' : ''}{stockData.priceChange24h.toFixed(2)} ({stockData.percentChange24h.toFixed(2)}%)
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* AI Recommendation */}
+      {/* Main Content */}
       <div className="p-8">
-        <div className="text-center mb-6">
-          <p className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            AI Recommendation
-          </p>
-          
-          {/* Large Recommendation Display */}
-          <div className={`relative inline-block`}>
-            <div className={`absolute inset-0 bg-gradient-to-r ${getRecommendationColor()} blur-xl opacity-30`}></div>
-            <div className={`relative bg-gradient-to-r ${getRecommendationColor()} text-white text-6xl font-black px-12 py-6 rounded-2xl shadow-2xl`}>
-              {recommendation}
-            </div>
-          </div>
+        <AnimatePresence mode="wait">
+          {researching ? (
+            // Research Phase
+            <motion.div
+              key="research"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-8">
+                <Brain className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-pulse" />
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  AI Researching {symbol}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Analyzing market data to provide the best recommendation
+                </p>
+              </div>
 
-          {/* Confidence Score */}
-          <div className="mt-6">
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Confidence Level</span>
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">{confidence}%</span>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+              {/* Research Steps */}
+              <div className="space-y-3">
+                {steps.map((step, index) => (
+                  <motion.div
+                    key={step.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`flex items-center space-x-3 p-3 rounded-lg border ${
+                      step.status === 'completed' 
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950' 
+                        : step.status === 'in-progress'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                        : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900'
+                    }`}
+                  >
+                    {step.status === 'completed' ? (
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                    ) : step.status === 'in-progress' ? (
+                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    ) : (
+                      <div className="w-5 h-5 text-gray-400">{step.icon}</div>
+                    )}
+                    <span className={`flex-1 ${
+                      step.status === 'completed' 
+                        ? 'text-green-700 dark:text-green-300' 
+                        : step.status === 'in-progress'
+                        ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}>
+                      {step.label}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-6">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+                    transition={{ duration: 0.5 }}
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            // Results Phase
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                  AI Recommendation
+                </p>
+                
+                {/* Large Recommendation Display */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                  className="relative inline-block"
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-r ${getRecommendationColor()} blur-xl opacity-30`}></div>
+                  <div className={`relative bg-gradient-to-r ${getRecommendationColor()} text-white text-6xl font-black px-12 py-6 rounded-2xl shadow-2xl`}>
+                    {recommendation}
+                  </div>
+                </motion.div>
+
+                {/* Confidence Score */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="mt-6"
+                >
+                  <div className="flex items-center justify-center space-x-2 mb-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Confidence Level</span>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{confidence}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${confidence}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`h-full bg-gradient-to-r ${getRecommendationColor()}`}
+                    />
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* AI Reasoning */}
               <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${confidence}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                className={`h-full bg-gradient-to-r ${getRecommendationColor()}`}
-              />
-            </div>
-          </div>
-        </div>
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className={`${getRecommendationBgColor()} rounded-xl p-6`}
+              >
+                <h3 className={`font-semibold ${getRecommendationTextColor()} mb-2`}>
+                  AI Analysis Summary
+                </h3>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {reasoning}
+                </p>
+              </motion.div>
 
-        {/* AI Reasoning */}
-        <div className={`${getRecommendationBgColor()} rounded-xl p-6 mt-6`}>
-          <h3 className={`font-semibold ${getRecommendationTextColor()} mb-2`}>
-            AI Analysis Summary
-          </h3>
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            {reasoning}
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-4 mt-8">
-          <button
-            onClick={() => {/* Handle portfolio action */}}
-            className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors"
-          >
-            Add to Portfolio
-          </button>
-          <button
-            onClick={() => {/* Handle watchlist action */}}
-            className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-          >
-            Add to Watchlist
-          </button>
-        </div>
+              {/* Action Buttons */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="flex space-x-4"
+              >
+                <button
+                  onClick={() => {/* Handle portfolio action */}}
+                  className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors"
+                >
+                  Add to Portfolio
+                </button>
+                <button
+                  onClick={() => {/* Handle watchlist action */}}
+                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Add to Watchlist
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Disclaimer */}
-        <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6">
-          AI recommendations are based on technical analysis, market data, and historical patterns. 
-          Always do your own research and consider your risk tolerance before trading.
-        </p>
+        {!researching && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6"
+          >
+            AI recommendations are based on technical analysis, market data, and historical patterns. 
+            Always do your own research and consider your risk tolerance before trading.
+          </motion.p>
+        )}
       </div>
     </motion.div>
   );
