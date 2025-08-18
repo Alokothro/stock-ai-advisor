@@ -7,7 +7,7 @@ import StockDetailViewAI from './StockDetailViewAI';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface HomePageMinimalProps {
-  user: any;
+  user: { username?: string; email?: string };
   signOut?: () => void;
 }
 

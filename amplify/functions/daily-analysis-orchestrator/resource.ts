@@ -1,10 +1,13 @@
-import { defineFunction, secret } from '@aws-amplify/backend';
+import { defineFunction } from '@aws-amplify/backend';
 
 export const dailyAnalysisOrchestrator = defineFunction({
   name: 'daily-analysis-orchestrator',
+  entry: './handler.ts',
   runtime: 20,
-  timeoutSeconds: 60, // Short timeout - just queues messages
+  resourceGroupName: 'data',
+  timeoutSeconds: 60,
   environment: {
-    QUEUE_URL: process.env.USER_ANALYSIS_QUEUE_URL || '',
+    ENV: process.env.ENV || 'dev',
+    REGION: process.env.AWS_REGION || 'us-east-1',
   },
 });

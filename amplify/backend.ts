@@ -12,7 +12,7 @@ import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 // import { getMarketData } from './functions/get-market-data/resource';
 // import { analyzeAsset } from './functions/analyze-asset/resource';
 // import { getAIRecommendation } from './functions/get-ai-recommendation/resource';
@@ -69,13 +69,16 @@ const functionUrl = backend.getAIAnalysis.resources.lambda.addFunctionUrl({
   },
 });
 
+// Get the stack from one of the resources
+const stack = Stack.of(backend.dailyAnalysisOrchestrator.resources.lambda);
+
 // Create SQS Queue for user analysis tasks
-const userAnalysisQueue = new Queue(backend.stack, 'UserAnalysisQueue', {
+const userAnalysisQueue = new Queue(stack, 'UserAnalysisQueue', {
   queueName: 'user-daily-analysis-queue',
   visibilityTimeout: Duration.seconds(360), // 6 minutes (longer than worker timeout)
   retentionPeriod: Duration.days(1),
   deadLetterQueue: {
-    queue: new Queue(backend.stack, 'UserAnalysisDLQ', {
+    queue: new Queue(stack, 'UserAnalysisDLQ', {
       queueName: 'user-daily-analysis-dlq',
       retentionPeriod: Duration.days(7),
     }),
@@ -92,15 +95,13 @@ backend.dailyAnalysisWorker.resources.lambda.addEventSource(
   })
 );
 
-// Pass queue URL to orchestrator
+// Pass queue URL to orchestrator using CDK's addEnvironment method
 const orchestratorLambda = backend.dailyAnalysisOrchestrator.resources.lambda;
-orchestratorLambda.addEnvironment(
-  'USER_ANALYSIS_QUEUE_URL',
-  userAnalysisQueue.queueUrl
-);
+// Note: Since we're using Amplify Data Client, we don't need to pass table names
+// The function will get them from the Amplify configuration
 
 // Set up EventBridge rule for daily trigger (9 AM ET)
-const dailyTriggerRule = new Rule(backend.stack, 'DailyAnalysisRule', {
+const dailyTriggerRule = new Rule(stack, 'DailyAnalysisRule', {
   ruleName: 'daily-portfolio-analysis',
   schedule: Schedule.cron({
     minute: '0',

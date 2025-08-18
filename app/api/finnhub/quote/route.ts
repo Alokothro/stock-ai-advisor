@@ -4,7 +4,19 @@ const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '***REMOVED***';
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 
 // Simple in-memory cache to reduce API calls
-const cache = new Map<string, { data: any; timestamp: number }>();
+interface StockData {
+  symbol: string;
+  currentPrice: number;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  previousClose: number;
+  priceChange24h: number;
+  percentChange24h: number;
+  timestamp: number;
+}
+
+const cache = new Map<string, { data: StockData; timestamp: number }>();
 const CACHE_TTL = 60 * 1000; // 1 minute cache
 
 export async function GET(request: NextRequest) {

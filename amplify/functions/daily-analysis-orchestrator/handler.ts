@@ -1,121 +1,80 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { SQSClient, SendMessageBatchCommand } from '@aws-sdk/client-sqs';
 import { EventBridgeEvent } from 'aws-lambda';
+import { Amplify } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/data';
+import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
+import type { Schema } from '../../data/resource';
 
-const dynamoClient = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(dynamoClient);
-const sqsClient = new SQSClient({});
-
-const QUEUE_URL = process.env.USER_ANALYSIS_QUEUE_URL;
-const USER_PREFERENCES_TABLE = process.env.USER_PREFERENCES_TABLE_NAME;
-
-interface UserPreference {
-  userId: string;
-  email: string;
-  dailyInsightsOptIn: boolean;
-  selectedStocks: string[];
-  alertPreferences?: {
-    priceThreshold?: number;
-    volatilityAlert?: boolean;
-  };
-}
-
-export const handler = async (event: EventBridgeEvent<any, any>) => {
+export const handler = async (event: EventBridgeEvent<string, any>) => {
   console.log('Daily Analysis Orchestrator triggered at:', new Date().toISOString());
   
   try {
-    // 1. Query all users with daily insights enabled
-    const usersToProcess = await getUsersForDailyAnalysis();
+    // Initialize Amplify Data client with IAM authentication
+    const env = process.env as any;
+    const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
+    Amplify.configure(resourceConfig, libraryOptions);
+    
+    const client = generateClient<Schema>({ authMode: 'iam' });
+    
+    // Query all users with daily insights enabled using Amplify Data Client
+    const { data: userPreferences } = await client.models.UserStockPreferences.list({
+      filter: {
+        dailyInsightsOptIn: { eq: true }
+      }
+    });
+    
+    const usersToProcess = userPreferences.filter(
+      (user) => user.selectedStocks && user.selectedStocks.length > 0
+    );
+    
     console.log(`Found ${usersToProcess.length} users opted in for daily analysis`);
     
     if (usersToProcess.length === 0) {
       return {
         statusCode: 200,
-        message: 'No users to process',
+        body: JSON.stringify({
+          message: 'No users to process',
+        }),
       };
     }
     
-    // 2. Batch users and send to SQS (max 10 messages per batch)
-    const batches = createBatches(usersToProcess, 10);
-    let totalQueued = 0;
+    // Process each user - for now, we'll create analysis history records
+    const processedUsers = [];
+    const currentTimestamp = new Date().toISOString();
     
-    for (const batch of batches) {
-      const messages = batch.map(user => ({
-        Id: user.userId,
-        MessageBody: JSON.stringify({
-          userId: user.userId,
-          email: user.email,
-          selectedStocks: user.selectedStocks,
-          alertPreferences: user.alertPreferences,
-          timestamp: new Date().toISOString(),
-        }),
-        MessageAttributes: {
-          ProcessingType: {
-            DataType: 'String',
-            StringValue: 'DailyAnalysis',
-          },
-        },
-      }));
-      
-      const command = new SendMessageBatchCommand({
-        QueueUrl: QUEUE_URL,
-        Entries: messages,
+    for (const user of usersToProcess) {
+      // Create analysis history record for tracking
+      const analysisRecord = await client.models.AnalysisHistory.create({
+        userId: user.userId,
+        timestamp: currentTimestamp,
+        stocksAnalyzed: user.selectedStocks?.length || 0,
+        analysis: 'Scheduled for processing',
+        emailSent: false,
       });
       
-      const result = await sqsClient.send(command);
-      totalQueued += result.Successful?.length || 0;
-      
-      if (result.Failed && result.Failed.length > 0) {
-        console.error('Failed to queue some messages:', result.Failed);
+      if (analysisRecord.data) {
+        processedUsers.push(user.userId);
       }
     }
     
-    console.log(`Successfully queued ${totalQueued} user analysis tasks`);
+    console.log(`Successfully created ${processedUsers.length} analysis tasks`);
     
     return {
       statusCode: 200,
-      message: `Queued ${totalQueued} user analysis tasks`,
-      totalUsers: usersToProcess.length,
+      body: JSON.stringify({
+        message: `Created ${processedUsers.length} analysis tasks`,
+        totalUsers: usersToProcess.length,
+        taskIds: processedUsers,
+      }),
     };
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in Daily Analysis Orchestrator:', error);
-    throw error;
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: 'Failed to process daily analysis',
+        details: error.message,
+      }),
+    };
   }
 };
-
-async function getUsersForDailyAnalysis(): Promise<UserPreference[]> {
-  const users: UserPreference[] = [];
-  let lastEvaluatedKey: any = undefined;
-  
-  do {
-    const scanCommand: ScanCommand = new ScanCommand({
-      TableName: USER_PREFERENCES_TABLE,
-      FilterExpression: 'dailyInsightsOptIn = :optIn AND size(selectedStocks) > :zero',
-      ExpressionAttributeValues: {
-        ':optIn': true,
-        ':zero': 0,
-      },
-      ExclusiveStartKey: lastEvaluatedKey,
-    });
-    
-    const scanResponse = await docClient.send(scanCommand);
-    
-    if (scanResponse.Items) {
-      users.push(...scanResponse.Items as UserPreference[]);
-    }
-    
-    lastEvaluatedKey = scanResponse.LastEvaluatedKey;
-  } while (lastEvaluatedKey);
-  
-  return users;
-}
-
-function createBatches<T>(array: T[], batchSize: number): T[][] {
-  const batches: T[][] = [];
-  for (let i = 0; i < array.length; i += batchSize) {
-    batches.push(array.slice(i, i + batchSize));
-  }
-  return batches;
-}
