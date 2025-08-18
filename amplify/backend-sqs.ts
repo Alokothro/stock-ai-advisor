@@ -10,7 +10,7 @@ import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 
 const backend = defineBackend({
   auth,
@@ -19,6 +19,8 @@ const backend = defineBackend({
   dailyAnalysisOrchestrator,
   dailyAnalysisWorker,
 });
+
+const { cfnResources } = backend.stack;
 
 // Create SQS Queue for user analysis tasks
 const userAnalysisQueue = new Queue(backend.stack, 'UserAnalysisQueue', {
@@ -38,13 +40,14 @@ const userAnalysisQueue = new Queue(backend.stack, 'UserAnalysisQueue', {
 backend.dailyAnalysisWorker.resources.lambda.addEventSource(
   new SqsEventSource(userAnalysisQueue, {
     batchSize: 1, // Process one user at a time
-    maxBatchingWindowInMs: 0, // Process immediately
+    maxBatchingWindow: Duration.seconds(0), // Process immediately
     reportBatchItemFailures: true, // Enable partial batch failure
   })
 );
 
-// Pass queue URL to orchestrator
-backend.dailyAnalysisOrchestrator.resources.lambda.addEnvironment(
+// Pass queue URL to orchestrator using backend stack
+const orchestratorLambda = backend.dailyAnalysisOrchestrator.resources.lambda;
+orchestratorLambda.addEnvironment(
   'USER_ANALYSIS_QUEUE_URL',
   userAnalysisQueue.queueUrl
 );
@@ -61,14 +64,30 @@ const dailyTriggerRule = new Rule(backend.stack, 'DailyAnalysisRule', {
 });
 
 dailyTriggerRule.addTarget(
-  new LambdaFunction(backend.dailyAnalysisOrchestrator.resources.lambda)
+  new LambdaFunction(orchestratorLambda)
 );
 
 // Grant permissions for orchestrator
-backend.dailyAnalysisOrchestrator.resources.lambda.addToRolePolicy(
+orchestratorLambda.addToRolePolicy(
   new PolicyStatement({
-    actions: ['sqs:SendMessage', 'sqs:SendMessageBatch'],
-    resources: [userAnalysisQueue.queueArn],
+    actions: ['sqs:SendMessage', 'sqs:SendMessageBatch', 'dynamodb:Scan', 'dynamodb:Query'],
+    resources: ['*'],
+  })
+);
+
+// Grant permissions for worker
+const workerLambda = backend.dailyAnalysisWorker.resources.lambda;
+workerLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      'dynamodb:GetItem',
+      'dynamodb:Query',
+      'dynamodb:PutItem',
+      'dynamodb:BatchGetItem',
+      'ses:SendEmail',
+      'secretsmanager:GetSecretValue',
+    ],
+    resources: ['*'],
   })
 );
 
@@ -85,6 +104,20 @@ backend.getAIAnalysis.resources.lambda.addToRolePolicy(
     resources: ['*'],
   })
 );
+
+// Add portfolio AI analysis to backend if needed
+// This is imported but not included in defineBackend, so commenting for now
+// backend.portfolioAIAnalysis.resources.lambda.addToRolePolicy(
+//   new PolicyStatement({
+//     actions: [
+//       'dynamodb:GetItem',
+//       'dynamodb:Query',
+//       'dynamodb:BatchGetItem',
+//       'secretsmanager:GetSecretValue',
+//     ],
+//     resources: ['*'],
+//   })
+// );
 
 // Add function URL for AI analysis Lambda
 const functionUrl = backend.getAIAnalysis.resources.lambda.addFunctionUrl({

@@ -87,10 +87,10 @@ export const handler = async (event: EventBridgeEvent<any, any>) => {
 
 async function getUsersForDailyAnalysis(): Promise<UserPreference[]> {
   const users: UserPreference[] = [];
-  let lastEvaluatedKey = undefined;
+  let lastEvaluatedKey: any = undefined;
   
   do {
-    const command = new ScanCommand({
+    const scanCommand: ScanCommand = new ScanCommand({
       TableName: USER_PREFERENCES_TABLE,
       FilterExpression: 'dailyInsightsOptIn = :optIn AND size(selectedStocks) > :zero',
       ExpressionAttributeValues: {
@@ -100,13 +100,13 @@ async function getUsersForDailyAnalysis(): Promise<UserPreference[]> {
       ExclusiveStartKey: lastEvaluatedKey,
     });
     
-    const response = await docClient.send(command);
+    const scanResponse = await docClient.send(scanCommand);
     
-    if (response.Items) {
-      users.push(...response.Items as UserPreference[]);
+    if (scanResponse.Items) {
+      users.push(...scanResponse.Items as UserPreference[]);
     }
     
-    lastEvaluatedKey = response.LastEvaluatedKey;
+    lastEvaluatedKey = scanResponse.LastEvaluatedKey;
   } while (lastEvaluatedKey);
   
   return users;

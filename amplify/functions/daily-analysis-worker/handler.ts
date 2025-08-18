@@ -101,7 +101,7 @@ async function fetchStockData(symbols: string[]): Promise<StockData[]> {
   const response = await docClient.send(command);
   const items = response.Responses?.[MARKET_DATA_TABLE!] || [];
   
-  return items.map(item => ({
+  return items.map((item: any) => ({
     symbol: item.symbol,
     currentPrice: item.currentPrice,
     previousClose: item.previousClose,
