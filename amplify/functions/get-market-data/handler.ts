@@ -10,6 +10,7 @@ interface MarketDataRequest {
   assetType: 'STOCK' | 'CRYPTO';
 }
 
+
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
     const { symbol, assetType } = JSON.parse(event.body || '{}') as MarketDataRequest;
