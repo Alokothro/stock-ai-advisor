@@ -1,15 +1,13 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
-
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
+import { Amplify } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/data';
+import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
+import type { Schema } from '../../data/resource';
 
 interface MarketDataRequest {
   symbol: string;
   assetType: 'STOCK' | 'CRYPTO';
 }
-
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
@@ -23,28 +21,32 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       };
     }
 
-    // Check cache first
-    const cacheKey = `${symbol}-${assetType}`;
-    const cacheResult = await docClient.send(
-      new GetCommand({
-        TableName: process.env.MARKETDATA_TABLE_NAME!,
-        Key: { symbol: cacheKey },
-      })
-    );
+    // Initialize Amplify Data Client
+    const env = process.env as any;
+    const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
+    Amplify.configure(resourceConfig, libraryOptions);
+    
+    const client = generateClient<Schema>({ authMode: 'iam' });
 
-    // If cache is fresh (less than 5 minutes old), return it
-    if (cacheResult.Item) {
-      const lastUpdated = new Date(cacheResult.Item.lastUpdated);
-      const now = new Date();
-      const diffMinutes = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
+    // Check cache first
+    try {
+      const { data: cachedData } = await client.models.MarketData.get({ symbol });
       
-      if (diffMinutes < 5) {
-        return {
-          statusCode: 200,
-          body: JSON.stringify(cacheResult.Item),
-          headers: { 'Content-Type': 'application/json' },
-        };
+      if (cachedData && cachedData.lastUpdated) {
+        const lastUpdated = new Date(cachedData.lastUpdated);
+        const now = new Date();
+        const diffMinutes = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
+        
+        if (diffMinutes < 5) {
+          return {
+            statusCode: 200,
+            body: JSON.stringify(cachedData),
+            headers: { 'Content-Type': 'application/json' },
+          };
+        }
       }
+    } catch (cacheError) {
+      console.log('No cached data found, fetching fresh data');
     }
 
     let marketData;
@@ -55,17 +57,26 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       marketData = await fetchCryptoData(symbol);
     }
 
-    // Cache the data
-    await docClient.send(
-      new PutCommand({
-        TableName: process.env.MARKETDATA_TABLE_NAME!,
-        Item: {
-          ...marketData,
-          symbol: cacheKey,
-          lastUpdated: new Date().toISOString(),
-        },
-      })
-    );
+    // Store in cache using Amplify Data Client
+    const dataToStore = {
+      ...marketData,
+      symbol,
+      assetType,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    // Use create or update based on whether record exists
+    try {
+      const { data: existingData } = await client.models.MarketData.get({ symbol });
+      if (existingData) {
+        await client.models.MarketData.update(dataToStore);
+      } else {
+        await client.models.MarketData.create(dataToStore);
+      }
+    } catch (storeError) {
+      console.error('Error storing market data:', storeError);
+      // Continue anyway - we have the data to return
+    }
 
     return {
       statusCode: 200,
@@ -100,7 +111,7 @@ async function fetchStockData(symbol: string) {
       const quote = data['Global Quote'];
       return {
         symbol: symbol,
-        assetType: 'STOCK',
+        assetType: 'STOCK' as const,
         name: symbol,
         currentPrice: parseFloat(quote['05. price']),
         openPrice: parseFloat(quote['02. open']),
@@ -148,7 +159,7 @@ async function fetchCryptoData(symbol: string) {
       const coin = data[0];
       return {
         symbol: symbol,
-        assetType: 'CRYPTO',
+        assetType: 'CRYPTO' as const,
         name: coin.name,
         currentPrice: coin.current_price,
         marketCap: coin.market_cap,
@@ -172,7 +183,7 @@ function getMockStockData(symbol: string) {
   
   return {
     symbol: symbol,
-    assetType: 'STOCK',
+    assetType: 'STOCK' as const,
     name: `${symbol} Inc.`,
     currentPrice: basePrice,
     openPrice: basePrice - change,
@@ -202,7 +213,7 @@ function getMockCryptoData(symbol: string) {
   
   return {
     symbol: symbol,
-    assetType: 'CRYPTO',
+    assetType: 'CRYPTO' as const,
     name: `${symbol} Coin`,
     currentPrice: basePrice,
     openPrice: basePrice - change,

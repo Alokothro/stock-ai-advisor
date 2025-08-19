@@ -1,9 +1,9 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, BatchWriteCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { EventBridgeEvent } from 'aws-lambda';
+import { Amplify } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/data';
+import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
+import type { Schema } from '../../data/resource';
 import { SP500 } from '../../../app/constants/sp500';
-
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
 
 // Finnhub API configuration
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '***REMOVED***';
@@ -49,163 +49,136 @@ async function fetchStockPrice(symbol: string): Promise<StockPrice | null> {
         high: data.h,
         low: data.l,
         open: data.o,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
     }
+    
+    return null;
   } catch (error) {
-    console.error(`Error fetching Finnhub price for ${symbol}:`, error);
+    console.error(`Error fetching price for ${symbol}:`, error);
+    // Return mock data as fallback
+    return getMockStockPrice(symbol);
   }
+}
+
+function getMockStockPrice(symbol: string): StockPrice {
+  const basePrice = Math.random() * 500 + 50;
+  const change = (Math.random() - 0.5) * 10;
+  const changePercent = (change / basePrice) * 100;
   
-  // Return mock data if API fails (for development/testing)
   return {
-    symbol,
-    price: 100 + Math.random() * 400,
-    change: (Math.random() - 0.5) * 10,
-    changePercent: (Math.random() - 0.5) * 5,
+    symbol: symbol,
+    price: basePrice,
+    previousClose: basePrice - change,
+    change: change,
+    changePercent: changePercent,
     volume: Math.floor(Math.random() * 10000000),
-    high: 100 + Math.random() * 410,
-    low: 100 + Math.random() * 390,
-    open: 100 + Math.random() * 400,
-    previousClose: 100 + Math.random() * 400,
-    timestamp: new Date().toISOString(),
+    marketCap: basePrice * Math.floor(Math.random() * 1000000000),
+    high: basePrice + Math.abs(change),
+    low: basePrice - Math.abs(change),
+    open: basePrice - change / 2,
+    timestamp: new Date().toISOString()
   };
 }
 
-async function batchUpdatePrices(stocks: string[]): Promise<void> {
-  const batchSize = 10; // Smaller batch for Finnhub rate limits (60 calls/minute)
-  const batches = [];
-  
-  for (let i = 0; i < stocks.length; i += batchSize) {
-    batches.push(stocks.slice(i, i + batchSize));
-  }
-  
-  for (const batch of batches) {
-    // Process stocks sequentially with delay to respect rate limits
-    const prices = [];
-    for (const symbol of batch) {
-      const price = await fetchStockPrice(symbol);
-      if (price) prices.push(price);
-      
-      // Rate limiting: 60 calls/minute = 1 call per second
-      // Add 1100ms delay to be safe (roughly 54 calls/minute)
-      await new Promise(resolve => setTimeout(resolve, 1100));
-    }
-    
-    const items = prices.map(price => ({
-      PutRequest: {
-        Item: {
-          symbol: price.symbol,
-          assetType: 'STOCK',
-          name: SP500.find(s => s.symbol === price.symbol)?.name || price.symbol,
-          currentPrice: price.price,
-          openPrice: price.open,
-          highPrice: price.high,
-          lowPrice: price.low,
-          closePrice: price.previousClose,
-          volume: price.volume,
-          marketCap: price.marketCap,
-          priceChange24h: price.change,
-          percentChange24h: price.changePercent,
-          lastUpdated: price.timestamp,
-          sector: SP500.find(s => s.symbol === price.symbol)?.sector || 'Unknown',
+// Process stocks in batches to avoid rate limits
+async function processBatch(
+  client: ReturnType<typeof generateClient<Schema>>,
+  symbols: string[], 
+  batchSize: number = 10
+): Promise<void> {
+  for (let i = 0; i < symbols.length; i += batchSize) {
+    const batch = symbols.slice(i, i + batchSize);
+    const promises = batch.map(async (symbol) => {
+      const priceData = await fetchStockPrice(symbol);
+      if (priceData) {
+        try {
+          // Check if record exists
+          const { data: existingData } = await client.models.MarketData.get({ symbol });
+          
+          const marketData = {
+            symbol: priceData.symbol,
+            assetType: 'STOCK' as const,
+            name: SP500.find(s => s.symbol === symbol)?.name || symbol,
+            currentPrice: priceData.price,
+            openPrice: priceData.open,
+            highPrice: priceData.high,
+            lowPrice: priceData.low,
+            closePrice: priceData.previousClose,
+            volume: priceData.volume,
+            marketCap: priceData.marketCap,
+            priceChange24h: priceData.change,
+            percentChange24h: priceData.changePercent,
+            lastUpdated: priceData.timestamp,
+          };
+          
+          if (existingData) {
+            await client.models.MarketData.update(marketData);
+          } else {
+            await client.models.MarketData.create(marketData);
+          }
+          
+          console.log(`Updated ${symbol}: $${priceData.price} (${priceData.changePercent.toFixed(2)}%)`);
+        } catch (error) {
+          console.error(`Error storing data for ${symbol}:`, error);
         }
       }
-    }));
+    });
     
-    if (items.length > 0) {
-      try {
-        await docClient.send(new BatchWriteCommand({
-          RequestItems: {
-            [process.env.MARKETDATA_TABLE_NAME!]: items
-          }
-        }));
-        console.log(`Updated ${items.length} stock prices`);
-      } catch (error) {
-        console.error('Error batch writing to DynamoDB:', error);
-      }
+    await Promise.allSettled(promises);
+    
+    // Small delay between batches to avoid rate limits
+    if (i + batchSize < symbols.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 }
 
-export const handler = async (event: any) => {
-  console.log('Starting S&P 500 batch price update');
+// Handler for EventBridge scheduled event
+export const handler = async (event: EventBridgeEvent<string, any>) => {
+  console.log('Starting batch update of S&P 500 stocks...');
+  console.log('Event:', JSON.stringify(event, null, 2));
   
   try {
+    // Initialize Amplify Data Client
+    const env = process.env as any;
+    const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
+    Amplify.configure(resourceConfig, libraryOptions);
+    
+    const client = generateClient<Schema>({ authMode: 'iam' });
+    
     // Get all S&P 500 symbols
     const symbols = SP500.map(stock => stock.symbol);
+    console.log(`Processing ${symbols.length} stocks...`);
     
-    // Update prices in batches
-    await batchUpdatePrices(symbols);
+    // Process in smaller chunks to avoid timeouts
+    const startTime = Date.now();
     
-    // Also update a summary record with market stats
-    const allPrices = await Promise.all(
-      symbols.slice(0, 30).map(s => fetchStockPrice(s)) // Sample top 30 for stats
-    );
+    // Process stocks in batches
+    await processBatch(client, symbols, 10);
     
-    const validPrices = allPrices.filter(p => p !== null) as StockPrice[];
-    const gainers = validPrices.filter(p => p.changePercent > 0).length;
-    const losers = validPrices.filter(p => p.changePercent < 0).length;
-    const unchanged = validPrices.filter(p => p.changePercent === 0).length;
-    
-    // Store market summary
-    await docClient.send(new PutCommand({
-      TableName: process.env.MARKETDATA_TABLE_NAME!,
-      Item: {
-        symbol: 'SP500_SUMMARY',
-        assetType: 'INDEX',
-        name: 'S&P 500 Index',
-        totalStocks: SP500.length,
-        gainers,
-        losers,
-        unchanged,
-        lastUpdated: new Date().toISOString(),
-        marketStatus: getMarketStatus(),
-      }
-    }));
+    const duration = Date.now() - startTime;
+    console.log(`Batch update completed in ${duration}ms`);
     
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: 'S&P 500 prices updated successfully',
-        stocksUpdated: symbols.length,
-        timestamp: new Date().toISOString(),
-      }),
+        message: 'Batch update completed successfully',
+        stocksProcessed: symbols.length,
+        duration: duration,
+        timestamp: new Date().toISOString()
+      })
     };
-  } catch (error) {
+    
+  } catch (error: any) {
     console.error('Error in batch update:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: 'Failed to update S&P 500 prices',
-        details: error,
-      }),
+        error: 'Batch update failed',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      })
     };
   }
 };
-
-function getMarketStatus(): string {
-  const now = new Date();
-  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-  const hours = easternTime.getHours();
-  const minutes = easternTime.getMinutes();
-  const day = easternTime.getDay();
-  
-  // Market is open Monday-Friday, 9:30 AM - 4:00 PM ET
-  if (day === 0 || day === 6) {
-    return 'CLOSED'; // Weekend
-  }
-  
-  const currentTime = hours * 60 + minutes;
-  const openTime = 9 * 60 + 30; // 9:30 AM
-  const closeTime = 16 * 60; // 4:00 PM
-  
-  if (currentTime >= openTime && currentTime < closeTime) {
-    return 'OPEN';
-  } else if (currentTime >= openTime - 60 && currentTime < openTime) {
-    return 'PRE_MARKET';
-  } else if (currentTime >= closeTime && currentTime < closeTime + 120) {
-    return 'AFTER_HOURS';
-  } else {
-    return 'CLOSED';
-  }
-}

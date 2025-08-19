@@ -92,7 +92,7 @@ const schema = a.schema({
       symbol: a.string().required(),
       alertType: a.enum(['PRICE_ABOVE', 'PRICE_BELOW', 'PERCENT_CHANGE', 'AI_SIGNAL']),
       threshold: a.float(),
-      isActive: a.boolean().default(true),
+      isActive: a.boolean(),
       triggeredAt: a.datetime(),
       message: a.string(),
     })
@@ -106,16 +106,16 @@ const schema = a.schema({
       userId: a.id().required(),
       email: a.email().required(),
       selectedStocks: a.string().array(), // Array of S&P 500 symbols
-      dailyInsightsOptIn: a.boolean().default(false),
+      dailyInsightsOptIn: a.boolean(),
       alertPreferences: a.customType({
         priceThreshold: a.float(),
         volatilityAlert: a.boolean(),
         earningsAlert: a.boolean(),
       }),
       notificationSettings: a.customType({
-        emailEnabled: a.boolean().default(true),
-        smsEnabled: a.boolean().default(false),
-        pushEnabled: a.boolean().default(false),
+        emailEnabled: a.boolean(),
+        smsEnabled: a.boolean(),
+        pushEnabled: a.boolean(),
         frequency: a.enum(['DAILY', 'WEEKLY', 'REALTIME']),
       }),
       portfolioMetrics: a.customType({
@@ -141,7 +141,7 @@ const schema = a.schema({
       topGainer: a.string(),
       topLoser: a.string(),
       analysis: a.string(),
-      emailSent: a.boolean().default(false),
+      emailSent: a.boolean(),
     })
     .identifier(['userId', 'timestamp'])
     .authorization((allow) => [
