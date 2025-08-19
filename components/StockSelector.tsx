@@ -42,7 +42,10 @@ export default function StockSelector({ userId, onSelectionChange }: StockSelect
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [preferences, setPreferences] = useState<any>(null);
+  const [preferences, setPreferences] = useState<{
+    selectedStocks?: string[];
+    dailyInsightsOptIn?: boolean;
+  } | null>(null);
 
   // Filter stocks based on search
   const filteredStocks = useMemo(() => {
@@ -76,10 +79,13 @@ export default function StockSelector({ userId, onSelectionChange }: StockSelect
   const loadUserPreferences = async () => {
     setLoading(true);
     try {
-      const { data } = await client.models.UserStockPreferences.get({ userId });
+      const { data } = await client.models.UserStockPreferences.get({ id: userId });
       if (data) {
-        setPreferences(data);
-        setSelectedStocks(data.selectedStocks || []);
+        setPreferences({
+          selectedStocks: data.selectedStocks?.filter((s): s is string => s !== null) || [],
+          dailyInsightsOptIn: data.dailyInsightsOptIn || false,
+        });
+        setSelectedStocks(data.selectedStocks?.filter((s): s is string => s !== null) || []);
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
@@ -107,7 +113,7 @@ export default function StockSelector({ userId, onSelectionChange }: StockSelect
       if (preferences) {
         // Update existing preferences
         await client.models.UserStockPreferences.update({
-          userId,
+          id: userId,
           selectedStocks,
         });
       } else {

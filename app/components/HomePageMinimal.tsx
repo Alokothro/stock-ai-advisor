@@ -25,7 +25,8 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
           </h1>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              Welcome, {user?.signInDetails?.loginId || 'User'}
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              Welcome, {(user as any)?.signInDetails?.loginId || user?.email || 'User'}
             </span>
             {signOut && (
               <button

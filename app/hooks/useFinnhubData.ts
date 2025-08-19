@@ -19,26 +19,28 @@ export function useFinnhubQuote(symbol: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  useEffect(() => {
+  const fetchQuote = async () => {
     if (!symbol) return;
     
-    const fetchQuote = async () => {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/finnhub/quote?symbol=${symbol}`);
+      if (!response.ok) throw new Error('Failed to fetch quote');
       
-      try {
-        const response = await fetch(`/api/finnhub/quote?symbol=${symbol}`);
-        if (!response.ok) throw new Error('Failed to fetch quote');
-        
-        const quote = await response.json();
-        setData(quote);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('Error fetching quote:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const quote = await response.json();
+      setData(quote);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error fetching quote:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (!symbol) return;
     
     fetchQuote();
     
@@ -47,7 +49,7 @@ export function useFinnhubQuote(symbol: string | null) {
     return () => clearInterval(interval);
   }, [symbol]);
   
-  return { data, loading, error, refetch: () => symbol && useFinnhubQuote(symbol) };
+  return { data, loading, error, refetch: fetchQuote };
 }
 
 export function useFinnhubBatchQuotes(symbols: string[]) {

@@ -24,15 +24,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Then analyze with Claude
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const quoteData = quote as any; // Type assertion for flexibility with Finnhub response
     const analysis = await analyzeStock(
       symbol,
-      quote.c || quote.currentPrice || 100,
-      quote.d || quote.priceChange24h || 0,
-      quote.dp || quote.percentChange24h || 0,
-      quote.volume,
-      quote.h || quote.highPrice,
-      quote.l || quote.lowPrice,
-      quote.o || quote.openPrice
+      quoteData.c || 100,
+      quoteData.d || 0,
+      quoteData.dp || 0,
+      quoteData.volume || 0,
+      quoteData.h || 0,
+      quoteData.l || 0,
+      quoteData.o || quoteData.openPrice || 0
     );
 
     // Combine the data

@@ -111,7 +111,7 @@ export default function SP500DashboardMinimal({ onStockSelect, searchQuery }: SP
       {filteredStocks.length === 0 && searchQuery && (
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400">
-            No stocks found matching "{searchQuery}"
+            No stocks found matching &quot;{searchQuery}&quot;
           </p>
         </div>
       )}

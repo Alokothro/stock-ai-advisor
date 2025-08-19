@@ -3,7 +3,27 @@
 import { useState, useEffect } from 'react';
 // import { generateClient } from 'aws-amplify/data';
 // import type { Schema } from '@/amplify/data/resource';
-import { SP500, SECTORS, getSectorStocks } from '../constants/sp500';
+import { SP500 } from '../constants/sp500';
+
+// Define SECTORS locally since it's not exported
+const SECTORS = [
+  'Technology',
+  'Healthcare', 
+  'Financials',
+  'Consumer Discretionary',
+  'Communication Services',
+  'Industrials',
+  'Consumer Staples',
+  'Energy',
+  'Utilities',
+  'Real Estate',
+  'Materials'
+];
+
+// Helper function to get stocks by sector
+const getSectorStocks = (sector: string) => {
+  return SP500.filter(stock => stock.sector === sector);
+};
 import StockCard from './StockCard';
 import { DashboardSkeleton } from './LoadingSkeletons';
 
@@ -79,7 +99,7 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
         
         if (response.ok) {
           const quotes = await response.json();
-          quotes.forEach((quote: any) => {
+          quotes.forEach((quote: { symbol: string; price: number; change: number; changePercent: number }) => {
             realPrices.set(quote.symbol, quote);
           });
         }

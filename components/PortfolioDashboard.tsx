@@ -68,12 +68,13 @@ export default function PortfolioDashboard({ userId }: PortfolioDashboardProps) 
   const loadPortfolioData = async () => {
     setLoading(true);
     try {
-      // Load user preferences
-      const { data: preferences } = await client.models.UserStockPreferences.get({ userId });
+      // Load user preferences  
+      const { data: preferences } = await client.models.UserStockPreferences.get({ id: userId });
       
       if (preferences?.selectedStocks && preferences.selectedStocks.length > 0) {
         // Load market data for selected stocks
         const stockPromises = preferences.selectedStocks.map(async (symbol) => {
+          if (!symbol) return null;
           const { data: marketData } = await client.models.MarketData.get({ symbol });
           return {
             symbol,
@@ -88,7 +89,8 @@ export default function PortfolioDashboard({ userId }: PortfolioDashboardProps) 
           };
         });
 
-        const stocks = await Promise.all(stockPromises);
+        const stockResults = await Promise.all(stockPromises);
+        const stocks = stockResults.filter((stock): stock is NonNullable<typeof stock> => stock !== null);
         setPortfolioStocks(stocks);
         calculatePortfolioMetrics(stocks);
         
@@ -156,7 +158,7 @@ export default function PortfolioDashboard({ userId }: PortfolioDashboardProps) 
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (context: any) => `$${context.parsed.y.toFixed(2)}`,
+          label: (context: { parsed: { y: number } }) => `$${context.parsed.y.toFixed(2)}`,
         },
       },
     },
@@ -165,7 +167,7 @@ export default function PortfolioDashboard({ userId }: PortfolioDashboardProps) 
       y: {
         grid: { color: 'rgba(0, 0, 0, 0.05)' },
         ticks: {
-          callback: (value: any) => `$${value}`,
+          callback: (value: string | number) => `$${value}`,
         },
       },
     },
