@@ -1,0 +1,7 @@
+symbol,timestamp,volume_level,sentiment_change,momentum_direction,confidence,viral_posts
+AAPL,2025-08-20T15:48:11.886196,normal,stable,neutral,50,False
+MSFT,2025-08-20T15:48:21.602320,normal,stable,neutral,50,False
+GOOGL,2025-08-20T15:48:30.518027,normal,stable,neutral,50,False
+NVDA,2025-08-20T15:48:40.074058,normal,stable,neutral,50,False
+TSLA,2025-08-20T15:48:48.814517,normal,stable,neutral,50,False
+META,2025-08-20T15:48:57.577941,normal,stable,neutral,50,False

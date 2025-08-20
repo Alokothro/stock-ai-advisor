@@ -1,0 +1,7 @@
+symbol,name,country,currency,exchange,industry,market_cap,share_outstanding,ipo,logo,weburl,fetched_at
+AAPL,Apple Inc,US,USD,NASDAQ NMS - GLOBAL MARKET,Technology,3369362.030102656,14840.39,1980-12-12,https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/AAPL.png,https://www.apple.com/,2025-08-20T15:47:58.112830
+MSFT,Microsoft Corp,US,USD,NASDAQ NMS - GLOBAL MARKET,Technology,3755235.6368422457,7433.17,1986-03-13,https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/MSFT.png,https://www.microsoft.com/en-in/,2025-08-20T15:47:58.954510
+GOOGL,Alphabet Inc,US,USD,NASDAQ NMS - GLOBAL MARKET,Media,2410426.105783105,12094,2004-08-19,https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/GOOG.png,https://abc.xyz/,2025-08-20T15:47:59.795283
+NVDA,NVIDIA Corp,US,USD,NASDAQ NMS - GLOBAL MARKET,Semiconductors,4214121.545355451,24400,1999-01-22,https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/NVDA.png,https://www.nvidia.com/,2025-08-20T15:48:00.634171
+TSLA,Tesla Inc,US,USD,NASDAQ NMS - GLOBAL MARKET,Automobiles,1033387.3973384005,3225.45,2013-03-06,https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/TSLA.png,https://www.tesla.com/,2025-08-20T15:48:01.489209
+META,Meta Platforms Inc,US,USD,NASDAQ NMS - GLOBAL MARKET,Media,1861364.0917596372,2512.14,2012-05-18,https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/FB.png,https://www.meta.com/,2025-08-20T15:48:02.360324

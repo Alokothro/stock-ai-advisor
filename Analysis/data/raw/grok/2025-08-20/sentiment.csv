@@ -1,0 +1,7 @@
+symbol,timestamp,sentiment_score,bullish_count,bearish_count,neutral_count,influence_score,key_topics,fetched_at
+AAPL,2023-10-01T14:30:00Z,0.45,750,250,300,2500000,"[""iPhone 15 sales performance"", ""Apple's AI integration"", ""Stock price fluctuations"", ""Earnings report expectations""]",2025-08-20T15:48:08.575811
+MSFT,,0,0,0,0,0,[],2025-08-20T15:48:18.140119
+GOOGL,,0,0,0,0,0,[],2025-08-20T15:48:27.449180
+NVDA,,0,0,0,0,0,[],2025-08-20T15:48:36.608288
+TSLA,2023-10-05T14:30:00Z,0.15,450,320,230,750000,"[""Elon Musk tweets"", ""Q2 Earnings Report"", ""Autopilot and AI advancements"", ""Stock price volatility""]",2025-08-20T15:48:45.278234
+META,2023-10-01T14:30:00Z,0.45,480,220,300,750000,"[""AI advancements"", ""User growth"", ""Regulatory scrutiny"", ""Stock performance""]",2025-08-20T15:48:54.486912
