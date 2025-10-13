@@ -331,22 +331,15 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
                 </p>
               </motion.div>
 
-              {/* Action Buttons */}
+              {/* Action Button */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 }}
-                className="flex space-x-4"
               >
                 <button
-                  onClick={() => {/* Handle portfolio action */}}
-                  className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors"
-                >
-                  Add to Portfolio
-                </button>
-                <button
                   onClick={() => {/* Handle watchlist action */}}
-                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="w-full py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors"
                 >
                   Add to Watchlist
                 </button>

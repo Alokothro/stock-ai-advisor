@@ -20,9 +20,12 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
       {/* Clean Header Bar */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-full px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            StockAI Advisor
-          </h1>
+          <button
+            onClick={() => setSelectedStock(null)}
+            className="text-2xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+          >
+            Stock AI Advisor
+          </button>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

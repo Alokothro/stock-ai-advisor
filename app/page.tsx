@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Amplify } from 'aws-amplify';
-import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
+import AuthenticatorWrapper from './components/AuthenticatorWrapper';
 import HomePageMinimal from './components/HomePageMinimal';
 import outputs from '@/amplify_outputs.json';
 
@@ -22,10 +22,10 @@ export default function Home() {
   }
 
   return (
-    <Authenticator>
+    <AuthenticatorWrapper>
       {({ signOut, user }) => (
         <HomePageMinimal user={user || {}} signOut={signOut} />
       )}
-    </Authenticator>
+    </AuthenticatorWrapper>
   );
 }
