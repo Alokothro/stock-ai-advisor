@@ -7,8 +7,8 @@ import os
 from datetime import datetime
 
 # API Keys
-FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY', '***REMOVED***')
-GROK_API_KEY = os.getenv('GROK_API_KEY', '***REMOVED******REMOVED***')
+FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
+GROK_API_KEY = os.getenv('GROK_API_KEY')
 
 # Data paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

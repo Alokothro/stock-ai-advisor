@@ -8,6 +8,6 @@ export const getAIAnalysis = defineFunction({
   timeoutSeconds: 30,
   memoryMB: 512,
   environment: {
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '***REMOVED******REMOVED***'
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || ''
   }
 });
