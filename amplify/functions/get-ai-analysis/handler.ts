@@ -190,34 +190,9 @@ export const handler: Handler = async (event) => {
       };
     }
     
-    // Check for recent analysis in cache
-    try {
-      const { data: recentAnalyses } = await client.models.Analysis.list({
-        filter: {
-          symbol: { eq: symbol },
-          assetType: { eq: assetType }
-        },
-        limit: 1
-      });
-      
-      if (recentAnalyses && recentAnalyses.length > 0) {
-        const latestAnalysis = recentAnalyses[0];
-        const analysisDate = new Date(latestAnalysis.timestamp);
-        const hoursSinceAnalysis = (Date.now() - analysisDate.getTime()) / (1000 * 60 * 60);
-        
-        // Return cached analysis if less than 1 hour old
-        if (hoursSinceAnalysis < 1) {
-          console.log('Returning cached analysis');
-          return {
-            statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(latestAnalysis)
-          };
-        }
-      }
-    } catch (cacheError) {
-      console.log('No cached analysis found, generating new one');
-    }
+    // Check for recent analysis in cache - DISABLED to always generate fresh analysis
+    // This ensures each stock gets a unique, real-time AI recommendation
+    console.log('Generating fresh AI analysis for', symbol);
     
     // Fetch current stock data
     const stockData = await getStockData(client, symbol);

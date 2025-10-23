@@ -57,7 +57,7 @@ Be decisive but realistic. Base your confidence on the strength of the signals.`
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 500,
-      temperature: 0.3,
+      temperature: 0.7, // Increased from 0.3 to add more variety
       messages: [
         {
           role: 'user',

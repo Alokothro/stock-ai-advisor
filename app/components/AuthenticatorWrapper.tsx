@@ -4,7 +4,7 @@ import { Authenticator } from '@aws-amplify/ui-react';
 import { useEffect } from 'react';
 
 interface AuthenticatorWrapperProps {
-  children: React.ReactNode;
+  children: (props: { signOut?: () => void; user?: any }) => React.ReactNode;
 }
 
 export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperProps) {
