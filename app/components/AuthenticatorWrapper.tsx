@@ -1,10 +1,13 @@
 'use client';
 
 import { Authenticator } from '@aws-amplify/ui-react';
+import type { AuthUser } from 'aws-amplify/auth';
 import { useEffect } from 'react';
 
+type SignOut = () => void;
+
 interface AuthenticatorWrapperProps {
-  children: (props: { signOut?: () => void; user?: any }) => React.ReactNode;
+  children: React.ReactNode | ((props: { signOut?: SignOut; user?: AuthUser }) => React.JSX.Element);
 }
 
 export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperProps) {
