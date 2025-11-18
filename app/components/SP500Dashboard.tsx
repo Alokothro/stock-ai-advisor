@@ -20,10 +20,6 @@ const SECTORS = [
   'Materials'
 ];
 
-// Helper function to get stocks by sector
-const getSectorStocks = (sector: string) => {
-  return SP500.filter(stock => stock.sector === sector);
-};
 import StockCard from './StockCard';
 import { DashboardSkeleton } from './LoadingSkeletons';
 
@@ -64,7 +60,6 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
       clearInterval(interval);
     };
   }, []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     filterAndSortStocks();
@@ -105,7 +100,7 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
             realPrices.set(quote.symbol, quote);
           });
         }
-      } catch (err) {
+      } catch {
         console.log('Could not fetch real prices, using mock data');
       }
       

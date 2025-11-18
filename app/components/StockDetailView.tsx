@@ -61,8 +61,8 @@ export default function StockDetailView({
         chartRef.current.remove();
       }
     };
-  }, [symbol]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol]);
 
   useEffect(() => {
     updateChartData();
