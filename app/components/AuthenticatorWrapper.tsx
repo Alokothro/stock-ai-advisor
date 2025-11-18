@@ -2,7 +2,7 @@
 
 import { Authenticator } from '@aws-amplify/ui-react';
 import type { AuthUser } from 'aws-amplify/auth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 type SignOut = () => void;
 
@@ -11,8 +11,12 @@ interface AuthenticatorWrapperProps {
 }
 
 export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   useEffect(() => {
-    // Create bronze flakes falling animation
+    // Only create flakes when not authenticated
+    if (isAuthenticated) return;
+
     const createFlake = () => {
       const flake = document.createElement('div');
       flake.className = 'bronze-flake';
@@ -31,10 +35,10 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
 
     const interval = setInterval(createFlake, 200);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   return (
-    <div className="auth-background">
+    <div className="auth-background" style={{ display: isAuthenticated ? 'none' : 'flex' }}>
       <style jsx global>{`
         .auth-background {
           min-height: 100vh;
@@ -79,10 +83,13 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
           box-shadow: none;
         }
 
-        /* Tab styling */
+        /* Tab styling - contain within box */
         [data-amplify-authenticator] [role="tablist"] {
           border-bottom: 2px solid #e5e7eb;
           margin-bottom: 2rem;
+          display: flex;
+          width: 100%;
+          position: relative;
         }
 
         [data-amplify-authenticator] [role="tab"] {
@@ -93,13 +100,23 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
           border: none;
           background: transparent;
           border-bottom: 3px solid transparent;
-          margin-bottom: -2px;
+          position: relative;
           transition: all 0.3s ease;
+          flex: 1;
         }
 
         [data-amplify-authenticator] [role="tab"][aria-selected="true"] {
           color: #cd7f32;
-          border-bottom-color: #cd7f32;
+        }
+
+        [data-amplify-authenticator] [role="tab"][aria-selected="true"]::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background-color: #cd7f32;
         }
 
         [data-amplify-authenticator] [role="tab"]:hover {
@@ -179,7 +196,17 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
         }
       `}</style>
       <Authenticator>
-        {children}
+        {({ signOut, user }) => {
+          // Update authentication state
+          if (user && !isAuthenticated) {
+            setIsAuthenticated(true);
+          }
+
+          if (typeof children === 'function') {
+            return children({ signOut, user });
+          }
+          return children;
+        }}
       </Authenticator>
     </div>
   );
