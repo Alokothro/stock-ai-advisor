@@ -25,8 +25,18 @@ export async function analyzeStock(
   openPrice?: number
 ): Promise<StockAnalysis> {
   try {
-    const prompt = `You are an expert stock analyst. Analyze the following stock and provide a clear investment recommendation.
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
 
+    const prompt = `You are an expert stock analyst providing analysis on ${currentDate}.
+
+Research and analyze ${symbol} stock using real-time data and recent news:
+
+CURRENT MARKET DATA (${currentDate}):
 Stock: ${symbol}
 Current Price: $${currentPrice.toFixed(2)}
 Price Change: ${priceChange >= 0 ? '+' : ''}$${priceChange.toFixed(2)} (${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%)
@@ -35,29 +45,29 @@ ${highPrice ? `Day High: $${highPrice.toFixed(2)}` : ''}
 ${lowPrice ? `Day Low: $${lowPrice.toFixed(2)}` : ''}
 ${openPrice ? `Open: $${openPrice.toFixed(2)}` : ''}
 
+INSTRUCTIONS:
+1. Search for and consider recent news, earnings reports, and market sentiment for ${symbol}
+2. Analyze the current price action and technical indicators
+3. Consider the company's fundamentals and sector trends
+4. Provide a UNIQUE analysis specific to ${symbol}'s current situation
+5. Use today's date (${currentDate}) as context for your analysis
+
 Provide your analysis in the following JSON format:
 {
   "recommendation": "BUY" or "SELL" or "HOLD",
   "confidence": <number from 0-100>,
-  "reasoning": "<brief explanation of your recommendation in 2-3 sentences>",
-  "priceTarget": <optional target price>,
+  "reasoning": "<detailed explanation mentioning specific factors about ${symbol}, recent events, or market conditions. Make this unique to ${symbol}. 3-4 sentences.>",
+  "priceTarget": <target price if applicable>,
   "riskLevel": "LOW" or "MEDIUM" or "HIGH" or "VERY_HIGH",
-  "timeHorizon": "<optional time frame like 'short-term' or 'long-term'>"
+  "timeHorizon": "short-term (1-3 months)" or "medium-term (3-6 months)" or "long-term (6+ months)"
 }
 
-Consider:
-1. Recent price movement and momentum
-2. Volatility (difference between high and low)
-3. Volume patterns if available
-4. Overall market conditions
-5. Risk/reward ratio
-
-Be decisive but realistic. Base your confidence on the strength of the signals.`;
+IMPORTANT: Your reasoning MUST be specific to ${symbol}. Mention the company by name, reference recent news/events if known, and explain why THIS PARTICULAR STOCK has this recommendation at THIS PARTICULAR TIME. Do not give generic advice.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 500,
-      temperature: 0.7, // Increased from 0.3 to add more variety
+      max_tokens: 800,
+      temperature: 0.9,
       messages: [
         {
           role: 'user',
