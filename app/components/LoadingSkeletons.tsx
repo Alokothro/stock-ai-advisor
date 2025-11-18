@@ -1,7 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
-
 export function StockCardSkeleton() {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 animate-pulse">

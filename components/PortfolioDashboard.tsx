@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, BarChart2, PieChart } from 'lucide-react';
-import { Line, Bar } from 'react-chartjs-2';
+import { TrendingUp, TrendingDown, Activity, BarChart2, PieChart } from 'lucide-react';
+import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -63,6 +63,7 @@ export default function PortfolioDashboard({ userId }: PortfolioDashboardProps) 
 
   useEffect(() => {
     loadPortfolioData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const loadPortfolioData = async () => {

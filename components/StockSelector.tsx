@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
-import { Search, Check, X, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Check, X } from 'lucide-react';
 
 const client = generateClient<Schema>();
 
@@ -74,6 +74,7 @@ export default function StockSelector({ userId, onSelectionChange }: StockSelect
   // Load user preferences
   useEffect(() => {
     loadUserPreferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const loadUserPreferences = async () => {

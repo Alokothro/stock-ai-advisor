@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  TrendingUp, TrendingDown, Activity, DollarSign, 
-  Search, Bell, Menu, Moon, Sun, ChevronRight,
+import {
+  TrendingUp, TrendingDown, Activity,
+  Search, Bell, Menu, Moon, Sun,
   BarChart3, PieChart, Zap, Shield, X
 } from 'lucide-react';
 import { generateClient } from 'aws-amplify/data';
@@ -21,12 +21,6 @@ export default function HomePage({ user }: { user: { userId?: string; email?: st
   const [activeView, setActiveView] = useState<'market' | 'portfolio' | 'watchlist' | 'alerts'>('market');
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
-  const [marketStats, setMarketStats] = useState({
-    sp500: { value: 4500, change: 0.5 },
-    dow: { value: 35000, change: 0.3 },
-    nasdaq: { value: 14000, change: 0.8 },
-    bitcoin: { value: 45000, change: 2.5 },
-  });
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 

@@ -203,9 +203,9 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
           }
 
           if (typeof children === 'function') {
-            return children({ signOut, user });
+            return <>{children({ signOut, user })}</>;
           }
-          return children;
+          return <>{children}</>;
         }}
       </Authenticator>
     </div>

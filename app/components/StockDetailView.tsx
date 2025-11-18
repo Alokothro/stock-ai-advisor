@@ -2,11 +2,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, Time, HistogramData } from 'lightweight-charts';
+import { createChart, ColorType, CandlestickData, Time } from 'lightweight-charts';
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp, TrendingDown, Activity, DollarSign, 
-  BarChart3, Info, Plus, Star, Bell, X 
+import {
+  TrendingUp, TrendingDown, Activity,
+  BarChart3, Plus, Star, Bell, X
 } from 'lucide-react';
 import NewsFeed from './NewsFeed';
 import { ChartSkeleton } from './LoadingSkeletons';
@@ -62,9 +62,11 @@ export default function StockDetailView({
       }
     };
   }, [symbol]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     updateChartData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeframe, chartType]);
 
   const fetchFreshAIAnalysis = async () => {

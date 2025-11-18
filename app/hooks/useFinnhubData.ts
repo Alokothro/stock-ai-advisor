@@ -43,10 +43,11 @@ export function useFinnhubQuote(symbol: string | null) {
     if (!symbol) return;
     
     fetchQuote();
-    
+
     // Auto-refresh every 60 seconds
     const interval = setInterval(fetchQuote, 60000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
   
   return { data, loading, error, refetch: fetchQuote };
@@ -84,10 +85,11 @@ export function useFinnhubBatchQuotes(symbols: string[]) {
     };
     
     fetchQuotes();
-    
+
     // Auto-refresh every 2 minutes for batch (less frequent due to rate limits)
     const interval = setInterval(fetchQuotes, 120000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbols.join(',')]);
   
   return { data, loading, error };

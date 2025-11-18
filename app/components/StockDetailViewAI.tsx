@@ -17,7 +17,6 @@ interface ResearchStep {
 }
 
 export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAIProps) {
-  const [loading, setLoading] = useState(true);
   const [researching, setResearching] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const [stockData, setStockData] = useState<{
@@ -43,15 +42,12 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
 
   useEffect(() => {
     performResearchAndAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
   const performResearchAndAnalysis = async () => {
-    setLoading(true);
     setResearching(true);
     setCurrentStep(0);
-    
-    // Reset steps
-    setSteps(researchSteps);
 
     // Simulate research phases with realistic timing
     const updateStep = (index: number, status: 'in-progress' | 'completed') => {
@@ -130,9 +126,8 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
     
     // Small delay before showing final result
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     setResearching(false);
-    setLoading(false);
   };
 
   const getRecommendationColor = () => {

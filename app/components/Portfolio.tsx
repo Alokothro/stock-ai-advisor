@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp, TrendingDown, DollarSign, PieChart, 
-  Plus, Edit2, Trash2, ArrowUpRight, ArrowDownRight 
+import {
+  TrendingUp, TrendingDown, DollarSign,
+  Plus, Edit2, Trash2, ArrowUpRight
 } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '@/amplify/data/resource';
 import { PortfolioSkeleton } from './LoadingSkeletons';
@@ -36,11 +36,10 @@ export default function Portfolio({ onStockSelect }: PortfolioProps) {
   const [totalProfitLoss, setTotalProfitLoss] = useState(0);
   const [totalProfitLossPercent, setTotalProfitLossPercent] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
 
   useEffect(() => {
     fetchPortfolio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchPortfolio = async () => {
@@ -113,24 +112,7 @@ export default function Portfolio({ onStockSelect }: PortfolioProps) {
     setTotalProfitLossPercent(((totalVal - totalCst) / totalCst) * 100);
   };
 
-  const handleAddStock = async (symbol: string, quantity: number, price: number) => {
-    try {
-      await client.models.Portfolio.create({
-        userId: 'current-user',
-        symbol,
-        assetType: 'STOCK',
-        quantity,
-        purchasePrice: price,
-        purchaseDate: new Date().toISOString(),
-      });
-      fetchPortfolio();
-      setShowAddModal(false);
-    } catch (error) {
-      console.error('Error adding to portfolio:', error);
-    }
-  };
-
-  const handleDeleteStock = async (symbol: string) => {
+  const handleDeleteStock = async (_symbol: string) => {
     try {
       // Delete from portfolio
       fetchPortfolio();

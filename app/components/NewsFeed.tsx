@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Newspaper, ExternalLink, Clock, TrendingUp, 
-  AlertCircle, Calendar, ArrowRight, Bookmark
+import {
+  Newspaper, ExternalLink, Clock, TrendingUp,
+  AlertCircle, ArrowRight, Bookmark
 } from 'lucide-react';
 
 interface NewsItem {
@@ -30,13 +30,13 @@ export default function NewsFeed({ symbol, limit = 10, onArticleClick }: NewsFee
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
     fetchNews();
     // Refresh news every 5 minutes
     const interval = setInterval(fetchNews, 5 * 60 * 1000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
   const fetchNews = async () => {
@@ -55,7 +55,6 @@ export default function NewsFeed({ symbol, limit = 10, onArticleClick }: NewsFee
 
   const generateMockNews = (stockSymbol?: string): NewsItem[] => {
     const categories = ['Markets', 'Technology', 'Finance', 'Analysis', 'Breaking'];
-    const sentiments: ('positive' | 'negative' | 'neutral')[] = ['positive', 'negative', 'neutral'];
     
     const newsTemplates = [
       {
@@ -232,8 +231,9 @@ export default function NewsFeed({ symbol, limit = 10, onArticleClick }: NewsFee
           >
             <div className="flex items-start space-x-3">
               {item.imageUrl && (
-                <img 
-                  src={item.imageUrl} 
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.imageUrl}
                   alt={item.title}
                   className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                 />

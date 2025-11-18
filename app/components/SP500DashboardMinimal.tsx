@@ -20,7 +20,6 @@ export default function SP500DashboardMinimal({ onStockSelect, searchQuery }: SP
   }>>([]);
   const [filteredStocks, setFilteredStocks] = useState<typeof stocks>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     fetchStockData();

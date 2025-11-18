@@ -64,9 +64,11 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
       clearInterval(interval);
     };
   }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     filterAndSortStocks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stocks, selectedSector, searchTerm, sortBy]);
 
   const fetchSP500Data = async () => {

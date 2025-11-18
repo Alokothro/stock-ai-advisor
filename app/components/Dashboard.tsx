@@ -7,7 +7,6 @@ import type { Asset } from '@/app/types';
 import StockCard from './StockCard';
 import SearchBar from './SearchBar';
 import AnalysisModal from './AnalysisModal';
-import SP500Dashboard from './SP500Dashboard';
 
 const client = generateClient<Schema>();
 

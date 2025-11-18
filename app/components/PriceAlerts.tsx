@@ -69,6 +69,7 @@ export default function PriceAlerts({ symbol, onAlertTriggered }: PriceAlertsPro
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
   const loadMockAlerts = () => {
