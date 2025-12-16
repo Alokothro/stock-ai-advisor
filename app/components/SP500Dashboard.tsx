@@ -54,11 +54,12 @@ export default function SP500Dashboard({ onStockSelect }: SP500DashboardProps) {
     
     // Refresh every 30 seconds
     const interval = setInterval(fetchSP500Data, 30000);
-    
+
     return () => {
       // subscription?.unsubscribe();
       clearInterval(interval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

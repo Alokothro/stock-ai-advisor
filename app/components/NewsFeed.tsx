@@ -127,7 +127,6 @@ export default function NewsFeed({ symbol, limit = 10, onArticleClick }: NewsFee
 
   const filteredNews = news.filter(item => {
     if (filter !== 'all' && item.sentiment !== filter) return false;
-    if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
     return true;
   });
 
