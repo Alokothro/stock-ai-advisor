@@ -14,7 +14,7 @@
  * - 30 API calls/second hard limit
  */
 
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '***REMOVED***';
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 
 export interface FinnhubQuote {

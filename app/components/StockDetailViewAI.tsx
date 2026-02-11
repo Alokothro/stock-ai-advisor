@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, X, Loader2, Search, TrendingUpDown, FileText, Brain, CheckCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, X, Loader2, Search, TrendingUpDown, FileText, Brain, CheckCircle, Sparkles } from 'lucide-react';
 
 interface StockDetailViewAIProps {
   symbol: string;
@@ -17,7 +17,8 @@ interface ResearchStep {
 }
 
 export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAIProps) {
-  const [researching, setResearching] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [stockData, setStockData] = useState<{
     symbol: string;
@@ -29,6 +30,7 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
   const [recommendation, setRecommendation] = useState<'BUY' | 'SELL' | 'HOLD'>('HOLD');
   const [confidence, setConfidence] = useState(0);
   const [reasoning, setReasoning] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const researchSteps: ResearchStep[] = [
     { id: 'price', label: 'Fetching real-time price data', status: 'pending', icon: <TrendingUpDown className="w-4 h-4" /> },
@@ -41,50 +43,46 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
   const [steps, setSteps] = useState<ResearchStep[]>(researchSteps);
 
   useEffect(() => {
-    performResearchAndAnalysis();
+    fetchStockPrice();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
-  const performResearchAndAnalysis = async () => {
-    setResearching(true);
+  const fetchStockPrice = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/finnhub/quote?symbol=${symbol}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setStockData({
+          symbol: data.symbol || symbol,
+          name: symbol,
+          currentPrice: data.currentPrice,
+          priceChange24h: data.priceChange24h,
+          percentChange24h: data.percentChange24h,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stock price:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const performAIAnalysis = async () => {
+    setAnalyzing(true);
     setCurrentStep(0);
 
     // Simulate research phases with realistic timing
     const updateStep = (index: number, status: 'in-progress' | 'completed') => {
-      setSteps(prev => prev.map((step, i) => 
+      setSteps(prev => prev.map((step, i) =>
         i === index ? { ...step, status } : step
       ));
     };
 
-    // Step 1: Fetch price data
+    // Step 1: Already have price data
     updateStep(0, 'in-progress');
     await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Actually fetch the data while showing progress
-    let analysisData = null;
-    try {
-      const response = await fetch('/api/ai/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol }),
-      });
-      
-      if (response.ok) {
-        analysisData = await response.json();
-        if (analysisData.quote) {
-          setStockData({
-            symbol: analysisData.symbol,
-            name: analysisData.quote.name || symbol,
-            currentPrice: analysisData.quote.c || analysisData.quote.currentPrice,
-            priceChange24h: analysisData.quote.d || analysisData.quote.priceChange24h,
-            percentChange24h: analysisData.quote.dp || analysisData.quote.percentChange24h,
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-    
     updateStep(0, 'completed');
     setCurrentStep(1);
 
@@ -106,51 +104,58 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
     updateStep(3, 'completed');
     setCurrentStep(4);
 
-    // Step 5: AI Processing
+    // Step 5: AI Processing - Actually call the API
     updateStep(4, 'in-progress');
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Set the actual AI analysis results
-    if (analysisData?.analysis) {
-      setRecommendation(analysisData.analysis.recommendation);
-      setConfidence(analysisData.analysis.confidence);
-      setReasoning(analysisData.analysis.reasoning);
-    } else {
-      // Fallback if no data
-      setRecommendation('HOLD');
-      setConfidence(60);
-      setReasoning('Unable to complete full analysis. Recommend holding position until more data is available.');
+
+    try {
+      const response = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol }),
+      });
+
+      if (response.ok) {
+        const analysisData = await response.json();
+        if (analysisData.analysis) {
+          setRecommendation(analysisData.analysis.recommendation);
+          setConfidence(analysisData.analysis.confidence);
+          setReasoning(analysisData.analysis.reasoning);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching AI analysis:', error);
     }
-    
+
     updateStep(4, 'completed');
-    
+
     // Small delay before showing final result
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    setResearching(false);
+    setAnalyzing(false);
+    setHasAnalyzed(true);
   };
 
   const getRecommendationColor = () => {
     switch (recommendation) {
       case 'BUY': return 'from-green-500 to-green-600';
       case 'SELL': return 'from-red-500 to-red-600';
-      case 'HOLD': return 'from-yellow-500 to-yellow-600';
+      case 'HOLD': return 'from-[#cd7f32] to-[#b87333]';
     }
   };
 
   const getRecommendationBgColor = () => {
     switch (recommendation) {
-      case 'BUY': return 'bg-green-50 dark:bg-green-950';
-      case 'SELL': return 'bg-red-50 dark:bg-red-950';
-      case 'HOLD': return 'bg-yellow-50 dark:bg-yellow-950';
+      case 'BUY': return 'bg-green-950 border-green-700';
+      case 'SELL': return 'bg-red-950 border-red-700';
+      case 'HOLD': return 'bg-[#2a1f15] border-[#cd7f32]';
     }
   };
 
   const getRecommendationTextColor = () => {
     switch (recommendation) {
-      case 'BUY': return 'text-green-600 dark:text-green-400';
-      case 'SELL': return 'text-red-600 dark:text-red-400';
-      case 'HOLD': return 'text-yellow-600 dark:text-yellow-400';
+      case 'BUY': return 'text-green-400';
+      case 'SELL': return 'text-red-400';
+      case 'HOLD': return 'text-[#cd7f32]';
     }
   };
 
@@ -161,14 +166,14 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden max-w-2xl mx-auto"
+      className="bg-black border-2 border-white rounded-2xl shadow-2xl overflow-hidden max-w-2xl mx-auto"
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-6">
+      <div className="bg-black border-b-2 border-[#cd7f32] p-6">
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-3xl font-bold text-white mb-1">{symbol}</h2>
-            {stockData && <p className="text-gray-300">{stockData.name}</p>}
+            {stockData && <p className="text-gray-400">{stockData.name}</p>}
           </div>
           {onClose && (
             <button
@@ -179,8 +184,13 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
             </button>
           )}
         </div>
-        
-        {stockData && (
+
+        {loading ? (
+          <div className="mt-4 flex items-center space-x-3">
+            <Loader2 className="w-6 h-6 text-[#cd7f32] animate-spin" />
+            <span className="text-gray-400">Loading price data...</span>
+          </div>
+        ) : stockData && (
           <div className="mt-4 flex items-center space-x-4">
             <span className="text-3xl font-bold text-white">
               ${stockData.currentPrice.toFixed(2)}
@@ -194,9 +204,34 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
       </div>
 
       {/* Main Content */}
-      <div className="p-8">
+      <div className="p-8 bg-black">
+        {!hasAnalyzed && !analyzing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center space-y-6"
+          >
+            <Sparkles className="w-16 h-16 text-[#cd7f32] mx-auto" />
+            <div>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                Ready to Analyze {symbol}
+              </h3>
+              <p className="text-gray-400">
+                Get AI-powered insights and recommendations for this stock
+              </p>
+            </div>
+            <button
+              onClick={performAIAnalysis}
+              disabled={loading}
+              className="px-8 py-4 bg-gradient-to-r from-[#cd7f32] to-[#b87333] text-white text-lg font-bold rounded-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Analyze Stock
+            </button>
+          </motion.div>
+        )}
+
         <AnimatePresence mode="wait">
-          {researching ? (
+          {analyzing && (
             // Research Phase
             <motion.div
               key="research"
@@ -206,11 +241,11 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
               className="space-y-6"
             >
               <div className="text-center mb-8">
-                <Brain className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-pulse" />
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                <Brain className="w-16 h-16 text-[#cd7f32] mx-auto mb-4 animate-pulse" />
+                <h3 className="text-2xl font-bold text-white mb-2">
                   AI Researching {symbol}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-400">
                   Analyzing market data to provide the best recommendation
                 </p>
               </div>
@@ -223,27 +258,27 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`flex items-center space-x-3 p-3 rounded-lg border ${
-                      step.status === 'completed' 
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950' 
+                    className={`flex items-center space-x-3 p-3 rounded-lg border-2 ${
+                      step.status === 'completed'
+                        ? 'border-green-500 bg-green-950'
                         : step.status === 'in-progress'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                        : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900'
+                        ? 'border-[#cd7f32] bg-[#2a1f15]'
+                        : 'border-gray-700 bg-gray-900'
                     }`}
                   >
                     {step.status === 'completed' ? (
                       <CheckCircle className="w-5 h-5 text-green-500" />
                     ) : step.status === 'in-progress' ? (
-                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                      <Loader2 className="w-5 h-5 text-[#cd7f32] animate-spin" />
                     ) : (
-                      <div className="w-5 h-5 text-gray-400">{step.icon}</div>
+                      <div className="w-5 h-5 text-gray-600">{step.icon}</div>
                     )}
                     <span className={`flex-1 ${
-                      step.status === 'completed' 
-                        ? 'text-green-700 dark:text-green-300' 
+                      step.status === 'completed'
+                        ? 'text-green-400'
                         : step.status === 'in-progress'
-                        ? 'text-blue-700 dark:text-blue-300 font-semibold'
-                        : 'text-gray-500 dark:text-gray-400'
+                        ? 'text-[#cd7f32] font-semibold'
+                        : 'text-gray-500'
                     }`}>
                       {step.label}
                     </span>
@@ -253,17 +288,19 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
 
               {/* Progress Bar */}
               <div className="mt-6">
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
                     transition={{ duration: 0.5 }}
-                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600"
+                    className="h-full bg-gradient-to-r from-[#cd7f32] to-[#b87333]"
                   />
                 </div>
               </div>
             </motion.div>
-          ) : (
+          )}
+
+          {hasAnalyzed && !analyzing && (
             // Results Phase
             <motion.div
               key="results"
@@ -272,10 +309,10 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
               className="space-y-6"
             >
               <div className="text-center mb-6">
-                <p className="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                <p className="text-sm text-gray-400 uppercase tracking-wide mb-3">
                   AI Recommendation
                 </p>
-                
+
                 {/* Large Recommendation Display */}
                 <motion.div
                   initial={{ scale: 0 }}
@@ -297,10 +334,10 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
                   className="mt-6"
                 >
                   <div className="flex items-center justify-center space-x-2 mb-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Confidence Level</span>
-                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{confidence}%</span>
+                    <span className="text-sm text-gray-400">Confidence Level</span>
+                    <span className="text-2xl font-bold text-white">{confidence}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div className="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${confidence}%` }}
@@ -316,12 +353,12 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className={`${getRecommendationBgColor()} rounded-xl p-6`}
+                className={`${getRecommendationBgColor()} border-2 rounded-xl p-6`}
               >
                 <h3 className={`font-semibold ${getRecommendationTextColor()} mb-2`}>
                   AI Analysis Summary
                 </h3>
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                <p className="text-gray-300 leading-relaxed">
                   {reasoning}
                 </p>
               </motion.div>
@@ -333,10 +370,13 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
                 transition={{ delay: 0.7 }}
               >
                 <button
-                  onClick={() => {/* Handle watchlist action */}}
-                  className="w-full py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors"
+                  onClick={() => {
+                    setHasAnalyzed(false);
+                    setSteps(researchSteps);
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-[#cd7f32] to-[#b87333] text-white rounded-xl font-semibold hover:scale-105 transition-transform"
                 >
-                  Add to Watchlist
+                  Analyze Again
                 </button>
               </motion.div>
             </motion.div>
@@ -344,14 +384,14 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
         </AnimatePresence>
 
         {/* Disclaimer */}
-        {!researching && (
+        {hasAnalyzed && !analyzing && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}
-            className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6"
+            className="text-xs text-gray-500 text-center mt-6"
           >
-            AI recommendations are based on technical analysis, market data, and historical patterns. 
+            AI recommendations are based on technical analysis, market data, and historical patterns.
             Always do your own research and consider your risk tolerance before trading.
           </motion.p>
         )}

@@ -16,27 +16,24 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-black">
       {/* Clean Header Bar */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <header className="bg-white dark:bg-black shadow-sm border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-full px-6 py-4 flex justify-between items-center">
+          <img src="/logo.png" alt="Logo" className="w-16 h-16" />
           <button
             onClick={() => setSelectedStock(null)}
-            className="text-2xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            className="absolute left-1/2 transform -translate-x-1/2 text-2xl font-bold text-gray-900 dark:text-white hover:opacity-80 transition-opacity cursor-pointer"
           >
             Stock AI Advisor
           </button>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              Welcome, {(user as any)?.signInDetails?.loginId || user?.email || 'User'}
-            </span>
+          <div className="flex items-center">
             {signOut && (
               <button
                 onClick={signOut}
-                className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                className="w-16 h-16 flex items-center justify-center text-sm font-semibold bg-white text-black border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                Sign Out
+                Bye
               </button>
             )}
           </div>
@@ -54,7 +51,7 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
               placeholder="Search stocks by symbol or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 text-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white placeholder-gray-400"
+              className="w-full pl-12 pr-4 py-4 text-lg bg-white dark:bg-black border-2 border-gray-300 dark:border-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#cd7f32] focus:border-transparent dark:text-white placeholder-gray-400"
             />
           </div>
         </div>

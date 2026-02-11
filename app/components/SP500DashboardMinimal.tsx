@@ -92,7 +92,7 @@ export default function SP500DashboardMinimal({ onStockSelect, searchQuery }: SP
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.005 }}
             onClick={() => onStockSelect?.(stock.symbol)}
-            className="bg-white dark:bg-gray-800 rounded-lg p-3 cursor-pointer hover:shadow-lg transition-all hover:scale-105 border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-black rounded-lg p-3 cursor-pointer transition-all hover:scale-105 border-2 border-gray-200 dark:border-[#cd7f32] hover:dark:bg-[#cd7f32] hover:dark:border-white"
           >
             {/* Stock Symbol */}
             <h3 className="font-bold text-base text-gray-900 dark:text-white text-center">
