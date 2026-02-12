@@ -31,7 +31,7 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
             {signOut && (
               <button
                 onClick={signOut}
-                className="w-16 h-16 flex items-center justify-center text-sm font-semibold bg-white text-black border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                className="w-16 h-16 flex items-center justify-center text-sm font-semibold bg-white text-black border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 Bye
               </button>

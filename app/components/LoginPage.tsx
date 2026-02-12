@@ -1,20 +1,9 @@
 'use client';
 
-import { Authenticator } from '@aws-amplify/ui-react';
-import type { AuthUser } from 'aws-amplify/auth';
 import { useEffect } from 'react';
 
-type SignOut = () => void;
-
-interface AuthenticatorWrapperProps {
-  children: React.ReactNode | ((props: { signOut?: SignOut; user?: AuthUser }) => React.JSX.Element);
-}
-
-export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperProps) {
+export default function LoginPage() {
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    let isCreatingFlakes = false;
-
     const createFlake = () => {
       const flake = document.createElement('div');
       flake.className = 'bronze-flake';
@@ -24,56 +13,33 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
       flake.style.width = (Math.random() * 8 + 4) + 'px';
       flake.style.height = flake.style.width;
 
-      document.body.appendChild(flake);
+      document.querySelector('.login-page')?.appendChild(flake);
 
       setTimeout(() => {
         flake.remove();
       }, 5000);
     };
 
-    const startFlakes = () => {
-      if (!isCreatingFlakes) {
-        isCreatingFlakes = true;
-        interval = setInterval(createFlake, 200);
-      }
-    };
-
-    const stopFlakes = () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
-        isCreatingFlakes = false;
-      }
-    };
-
-    const checkAuth = () => {
-      const authenticator = document.querySelector('[data-amplify-authenticator]');
-      if (authenticator && !isCreatingFlakes) {
-        startFlakes();
-      } else if (!authenticator && isCreatingFlakes) {
-        stopFlakes();
-      }
-    };
-
-    // Check periodically instead of using MutationObserver
-    checkAuth();
-    const checkInterval = setInterval(checkAuth, 1000);
-
-    return () => {
-      stopFlakes();
-      clearInterval(checkInterval);
-    };
+    const interval = setInterval(createFlake, 200);
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <>
       <style jsx global>{`
-        body {
+        .login-page {
+          min-height: 100vh;
           background: #000000;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          overflow: hidden;
         }
 
         .ticker-wrapper {
-          position: fixed;
+          position: absolute;
           top: 0;
           left: 0;
           width: 100%;
@@ -81,7 +47,7 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
           background: rgba(0, 0, 0, 0.8);
           border-bottom: 2px solid #cd7f32;
           overflow: hidden;
-          z-index: 1000;
+          z-index: 5;
           display: flex;
           align-items: center;
         }
@@ -111,28 +77,28 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
 
         .auth-logo-container {
           display: flex;
-          justify-content: center;
-          margin-bottom: 1rem;
-          margin-top: 0;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 2.5rem;
+          margin-top: 80px;
           position: relative;
           z-index: 10;
         }
 
         .auth-logo {
-          width: 60px;
-          height: 60px;
+          width: 180px;
+          height: 180px;
           object-fit: contain;
         }
 
         .bronze-flake {
-          position: fixed;
+          position: absolute;
           top: -10px;
           background: linear-gradient(135deg, #cd7f32, #b87333, #cd7f32);
           border-radius: 50%;
           pointer-events: none;
           animation: fall linear forwards;
           box-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
-          z-index: 1;
         }
 
         @keyframes fall {
@@ -148,20 +114,23 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
           box-shadow: 0 20px 60px rgba(205, 127, 50, 0.3);
           max-width: 550px;
           width: 90%;
-          margin: 150px auto 0 auto;
           position: relative;
           z-index: 10;
+          overflow: visible;
         }
 
         [data-amplify-authenticator] [data-amplify-router] {
           background: transparent;
           border: none;
           box-shadow: none;
+          max-width: 100%;
+          overflow: visible;
         }
 
         [data-amplify-authenticator] [role="tablist"] {
           border-bottom: 2px solid #e5e7eb;
           margin-bottom: 1.5rem;
+          overflow: visible;
         }
 
         [data-amplify-authenticator] [role="tab"] {
@@ -172,6 +141,7 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
           border: none;
           background: transparent;
           transition: color 0.3s ease;
+          white-space: nowrap;
         }
 
         [data-amplify-authenticator] [role="tab"][aria-selected="true"] {
@@ -190,12 +160,21 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
           font-size: 1rem;
           transition: all 0.3s ease;
           width: 100%;
+          box-sizing: border-box;
         }
 
         [data-amplify-authenticator] input:focus {
           border-color: #cd7f32;
           outline: none;
           box-shadow: 0 0 0 3px rgba(205, 127, 50, 0.1);
+        }
+
+        [data-amplify-authenticator] [data-amplify-form] {
+          width: 100%;
+        }
+
+        [data-amplify-authenticator] [data-amplify-field] {
+          width: 100%;
         }
 
         [data-amplify-authenticator] label {
@@ -245,67 +224,28 @@ export default function AuthenticatorWrapper({ children }: AuthenticatorWrapperP
         }
       `}</style>
 
-      <Authenticator
-        components={{
-          SignIn: {
-            Header() {
-              return (
-                <>
-                  <div className="ticker-wrapper">
-                    <div className="ticker">
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                    </div>
-                  </div>
-                  <div className="auth-logo-container">
-                    <img src="/logo.png" alt="Logo" className="auth-logo" />
-                  </div>
-                </>
-              );
-            },
-          },
-          SignUp: {
-            Header() {
-              return (
-                <>
-                  <div className="ticker-wrapper">
-                    <div className="ticker">
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                      <span className="ticker-item">STOCK AI ADVISOR</span>
-                    </div>
-                  </div>
-                  <div className="auth-logo-container">
-                    <img src="/logo.png" alt="Logo" className="auth-logo" />
-                  </div>
-                </>
-              );
-            },
-          },
-        }}
-      >
-        {({ signOut, user }) => {
-          if (typeof children === 'function') {
-            return children({ signOut, user });
-          }
-          return <>{children}</>;
-        }}
-      </Authenticator>
+      <div className="login-page">
+        {/* Ticker at the top */}
+        <div className="ticker-wrapper">
+          <div className="ticker">
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+            <span className="ticker-item">STOCK AI ADVISOR</span>
+          </div>
+        </div>
+
+        {/* Logo */}
+        <div className="auth-logo-container">
+          <img src="/logo.png" alt="Logo" className="auth-logo" />
+        </div>
+      </div>
     </>
   );
 }
