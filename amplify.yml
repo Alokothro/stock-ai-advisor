@@ -18,6 +18,8 @@ frontend:
       commands:
         - env | grep -E '^NEXT_PUBLIC_' >> .env.production || true
         - env | grep -E '^AMPLIFY_' >> .env.production || true
+        - echo "FINNHUB_API_KEY=$FINNHUB_API_KEY" >> .env.production
+        - echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> .env.production
         - npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID
         - npm run build
   artifacts:
