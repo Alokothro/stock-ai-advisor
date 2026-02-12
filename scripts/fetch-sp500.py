@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-import requests
-from bs4 import BeautifulSoup
-import json
+import requests  # type: ignore
+from bs4 import BeautifulSoup  # type: ignore
 
 def fetch_sp500_list():
     """Fetch the complete S&P 500 list from Wikipedia"""
