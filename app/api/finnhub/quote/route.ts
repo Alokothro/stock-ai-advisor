@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
+// Try both prefixed and non-prefixed env vars for compatibility
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
 
 // Simple in-memory cache to reduce API calls
@@ -22,29 +23,50 @@ const CACHE_TTL = 60 * 1000; // 1 minute cache
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const symbol = searchParams.get('symbol');
-  
+
   if (!symbol) {
     return NextResponse.json({ error: 'Symbol is required' }, { status: 400 });
   }
-  
+
+  // Check if API key is configured
+  if (!FINNHUB_API_KEY) {
+    console.error('FINNHUB_API_KEY environment variable is not set');
+    return NextResponse.json(
+      { error: 'API key not configured' },
+      { status: 500 }
+    );
+  }
+
   // Check cache
   const cached = cache.get(symbol);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return NextResponse.json(cached.data);
   }
-  
+
   try {
     // Fetch from Finnhub
-    const response = await fetch(
-      `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
-    );
-    
+    const url = `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+    console.log(`Fetching stock data for ${symbol}`);
+
+    const response = await fetch(url);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Finnhub API error: ${response.status} - ${errorText}`);
       throw new Error(`Finnhub API error: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
+
+    // Check if we got valid data
+    if (data.c === 0 && data.o === 0) {
+      console.error(`No data returned for symbol: ${symbol}`);
+      return NextResponse.json(
+        { error: 'No data available for this symbol' },
+        { status: 404 }
+      );
+    }
+
     // Transform Finnhub data to our format
     const stockData = {
       symbol,
@@ -57,15 +79,15 @@ export async function GET(request: NextRequest) {
       percentChange24h: data.dp,
       timestamp: data.t,
     };
-    
+
     // Cache the result
     cache.set(symbol, { data: stockData, timestamp: Date.now() });
-    
+
     return NextResponse.json(stockData);
   } catch (error) {
     console.error('Error fetching quote:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch stock data' },
+      { error: 'Failed to fetch stock data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
