@@ -65,9 +65,8 @@ Provide your analysis in the following JSON format:
 IMPORTANT: Your reasoning MUST be specific to ${symbol}. Mention the company by name, reference recent news/events if known, and explain why THIS PARTICULAR STOCK has this recommendation at THIS PARTICULAR TIME. Do not give generic advice.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-5',
       max_tokens: 800,
-      temperature: 0.9,
       messages: [
         {
           role: 'user',
@@ -77,8 +76,8 @@ IMPORTANT: Your reasoning MUST be specific to ${symbol}. Mention the company by 
     });
 
     // Parse the response
-    const content = response.content[0];
-    if (content.type === 'text') {
+    const content = response.content.find((block) => block.type === 'text');
+    if (content && content.type === 'text') {
       try {
         // Extract JSON from the response
         const jsonMatch = content.text.match(/\{[\s\S]*\}/);
