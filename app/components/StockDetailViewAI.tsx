@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, X, Loader2, Search, TrendingUpDown, FileText, Brain, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react';
+import ParticleSphere from './ParticleSphere';
 
 interface StockDetailViewAIProps {
   symbol: string;
@@ -289,8 +290,8 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
               className="space-y-6"
             >
               <div className="text-center mb-8">
-                <Brain className="w-16 h-16 text-[#cd7f32] mx-auto mb-4 animate-pulse" />
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <ParticleSphere size={220} />
+                <h3 className="text-2xl font-bold text-white mb-2 -mt-2">
                   AI Researching {symbol}
                 </h3>
                 <p className="text-gray-400">
