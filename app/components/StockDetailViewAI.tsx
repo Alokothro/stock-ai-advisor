@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, X, Loader2, Search, TrendingUpDown, FileText, Brain, CheckCircle, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, X, Loader2, Search, TrendingUpDown, FileText, Brain, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react';
 
 interface StockDetailViewAIProps {
   symbol: string;
@@ -30,7 +30,11 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
   const [recommendation, setRecommendation] = useState<'BUY' | 'SELL' | 'HOLD'>('HOLD');
   const [confidence, setConfidence] = useState(0);
   const [reasoning, setReasoning] = useState('');
+  const [isFallback, setIsFallback] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const requestSymbolRef = useRef(symbol);
 
   const researchSteps: ResearchStep[] = [
     { id: 'price', label: 'Fetching real-time price data', status: 'pending', icon: <TrendingUpDown className="w-4 h-4" /> },
@@ -43,34 +47,54 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
   const [steps, setSteps] = useState<ResearchStep[]>(researchSteps);
 
   useEffect(() => {
-    fetchStockPrice();
+    requestSymbolRef.current = symbol;
+    setHasAnalyzed(false);
+    setAnalyzing(false);
+    setStockData(null);
+    setPriceError(null);
+    setAnalysisError(null);
+    setSteps(researchSteps);
+    fetchStockPrice(symbol);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
-  const fetchStockPrice = async () => {
+  const fetchStockPrice = async (forSymbol: string) => {
     setLoading(true);
+    setPriceError(null);
     try {
-      const response = await fetch(`/api/finnhub/quote?symbol=${symbol}`);
+      const response = await fetch(`/api/finnhub/quote?symbol=${forSymbol}`);
+      if (requestSymbolRef.current !== forSymbol) return; // stale response, symbol changed
 
       if (response.ok) {
         const data = await response.json();
+        if (requestSymbolRef.current !== forSymbol) return;
         setStockData({
-          symbol: data.symbol || symbol,
-          name: symbol,
+          symbol: data.symbol || forSymbol,
+          name: forSymbol,
           currentPrice: data.currentPrice,
           priceChange24h: data.priceChange24h,
           percentChange24h: data.percentChange24h,
         });
+      } else {
+        setPriceError('Unable to load price data for this stock.');
       }
     } catch (error) {
       console.error('Error fetching stock price:', error);
+      if (requestSymbolRef.current === forSymbol) {
+        setPriceError('Unable to load price data for this stock.');
+      }
     } finally {
-      setLoading(false);
+      if (requestSymbolRef.current === forSymbol) {
+        setLoading(false);
+      }
     }
   };
 
   const performAIAnalysis = async () => {
+    const forSymbol = symbol;
     setAnalyzing(true);
+    setAnalysisError(null);
+    setIsFallback(false);
     setCurrentStep(0);
 
     // Simulate research phases with realistic timing
@@ -111,19 +135,32 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
       const response = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol }),
+        body: JSON.stringify({ symbol: forSymbol }),
       });
+
+      if (requestSymbolRef.current !== forSymbol) return; // user switched stocks mid-analysis
 
       if (response.ok) {
         const analysisData = await response.json();
+        if (requestSymbolRef.current !== forSymbol) return;
         if (analysisData.analysis) {
           setRecommendation(analysisData.analysis.recommendation);
           setConfidence(analysisData.analysis.confidence);
           setReasoning(analysisData.analysis.reasoning);
+          setIsFallback(!!analysisData.analysis.isFallback);
         }
+      } else {
+        setAnalysisError('AI analysis failed. Please try again.');
+        setAnalyzing(false);
+        return;
       }
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
+      if (requestSymbolRef.current === forSymbol) {
+        setAnalysisError('AI analysis failed. Please try again.');
+        setAnalyzing(false);
+      }
+      return;
     }
 
     updateStep(4, 'completed');
@@ -131,6 +168,7 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
     // Small delay before showing final result
     await new Promise(resolve => setTimeout(resolve, 500));
 
+    if (requestSymbolRef.current !== forSymbol) return;
     setAnalyzing(false);
     setHasAnalyzed(true);
   };
@@ -190,6 +228,11 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
             <Loader2 className="w-6 h-6 text-[#cd7f32] animate-spin" />
             <span className="text-gray-400">Loading price data...</span>
           </div>
+        ) : priceError ? (
+          <div className="mt-4 flex items-center space-x-2 text-red-400">
+            <AlertTriangle className="w-5 h-5" />
+            <span>{priceError}</span>
+          </div>
         ) : stockData && (
           <div className="mt-4 flex items-center space-x-4">
             <span className="text-3xl font-bold text-white">
@@ -222,11 +265,16 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
             </div>
             <button
               onClick={performAIAnalysis}
-              disabled={loading}
+              disabled={loading || !stockData}
               className="px-8 py-4 bg-gradient-to-r from-[#cd7f32] to-[#b87333] text-white text-lg font-bold rounded-xl hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Analyze Stock
             </button>
+            {analysisError && (
+              <p className="text-red-400 flex items-center justify-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> {analysisError}
+              </p>
+            )}
           </motion.div>
         )}
 
@@ -308,6 +356,12 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
+              {isFallback && (
+                <div className="flex items-center gap-2 bg-yellow-950 border-2 border-yellow-700 text-yellow-400 rounded-xl p-3 text-sm">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <span>AI analysis is temporarily unavailable — this is a simplified estimate, not a full AI-generated recommendation.</span>
+                </div>
+              )}
               <div className="text-center mb-6">
                 <p className="text-sm text-gray-400 uppercase tracking-wide mb-3">
                   AI Recommendation
@@ -373,6 +427,7 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
                   onClick={() => {
                     setHasAnalyzed(false);
                     setSteps(researchSteps);
+                    performAIAnalysis();
                   }}
                   className="w-full py-3 bg-gradient-to-r from-[#cd7f32] to-[#b87333] text-white rounded-xl font-semibold hover:scale-105 transition-transform"
                 >

@@ -23,8 +23,6 @@ export default function SP500DashboardMinimal({ onStockSelect, searchQuery }: SP
 
   useEffect(() => {
     fetchStockData();
-    const interval = setInterval(fetchStockData, 60000); // Refresh every minute
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import SP500DashboardMinimal from './SP500DashboardMinimal';
 import StockDetailViewAI from './StockDetailViewAI';
@@ -15,8 +15,20 @@ interface HomePageMinimalProps {
 export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps) {
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  const searchMatches = searchQuery.trim()
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const searchMatches = isSearchFocused && searchQuery.trim()
     ? SP500.filter(
         (stock) =>
           stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -27,6 +39,7 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
   const handleSelectFromSearch = (symbol: string) => {
     setSelectedStock(symbol);
     setSearchQuery('');
+    setIsSearchFocused(false);
   };
 
   return (
@@ -58,13 +71,22 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
       <main className="max-w-full px-6">
         {/* Centered Search Bar */}
         <div className="flex justify-center mt-12 mb-8">
-          <div className="relative w-full max-w-2xl">
+          <div className="relative w-full max-w-2xl" ref={searchContainerRef}>
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search stocks by symbol or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setIsSearchFocused(false);
+                  (e.target as HTMLInputElement).blur();
+                } else if (e.key === 'Enter' && searchMatches.length > 0) {
+                  handleSelectFromSearch(searchMatches[0].symbol);
+                }
+              }}
               className="w-full pl-12 pr-4 py-4 text-lg bg-white dark:bg-black border-2 border-gray-300 dark:border-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#cd7f32] focus:border-transparent dark:text-white placeholder-gray-400"
             />
 

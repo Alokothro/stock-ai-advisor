@@ -12,6 +12,7 @@ export interface StockAnalysis {
   priceTarget?: number;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
   timeHorizon?: string;
+  isFallback?: boolean;
 }
 
 export async function analyzeStock(
@@ -96,6 +97,7 @@ IMPORTANT: Your reasoning MUST be specific to ${symbol}. Mention the company by 
       confidence: 60,
       reasoning: 'Unable to perform complete analysis. Recommend holding position until more data is available.',
       riskLevel: 'MEDIUM',
+      isFallback: true,
     };
   } catch (error) {
     console.error('Error calling Anthropic API:', error);
@@ -134,6 +136,7 @@ IMPORTANT: Your reasoning MUST be specific to ${symbol}. Mention the company by 
           : 'Wait for clearer market signals before taking action.'
       }`,
       riskLevel,
+      isFallback: true,
     };
   }
 }

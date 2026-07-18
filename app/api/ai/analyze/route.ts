@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
       getCompanyProfile(symbol)
     ]);
 
-    if (!quote) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!quote || !(quote as any).c) {
       return NextResponse.json(
-        { error: 'Unable to fetch stock data' },
-        { status: 500 }
+        { error: `Unable to fetch stock data for ${symbol}` },
+        { status: 502 }
       );
     }
 
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     const quoteData = quote as any;
     const analysis = await analyzeStock(
       symbol,
-      quoteData.c || 100,
+      quoteData.c,
       quoteData.d || 0,
       quoteData.dp || 0,
       quoteData.volume || 0,
