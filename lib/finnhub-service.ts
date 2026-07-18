@@ -165,6 +165,147 @@ export async function getEnrichedStockData(symbol: string): Promise<StockData | 
   };
 }
 
+export interface RecommendationTrend {
+  buy: number;
+  hold: number;
+  sell: number;
+  strongBuy: number;
+  strongSell: number;
+  period: string;
+}
+
+export interface PriceTarget {
+  targetHigh: number;
+  targetLow: number;
+  targetMean: number;
+  targetMedian: number;
+}
+
+export interface CompanyNewsItem {
+  headline: string;
+  summary: string;
+  source: string;
+  datetime: number;
+  url: string;
+}
+
+export interface BasicFinancials {
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  tenDayAverageVolume?: number;
+  threeMonthAverageVolume?: number;
+  peBasicExclExtraTTM?: number;
+  epsTTM?: number;
+  beta?: number;
+  priceRelativeToSP500_52Week?: number;
+}
+
+/**
+ * Analyst recommendation trends (buy/hold/sell counts) — free tier
+ */
+export async function getRecommendationTrends(symbol: string): Promise<RecommendationTrend[]> {
+  try {
+    const response = await fetch(
+      `${FINNHUB_BASE_URL}/stock/recommendation?symbol=${symbol}&token=${FINNHUB_API_KEY}`
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data)
+      ? data.map((d) => ({
+          buy: d.buy,
+          hold: d.hold,
+          sell: d.sell,
+          strongBuy: d.strongBuy,
+          strongSell: d.strongSell,
+          period: d.period,
+        }))
+      : [];
+  } catch (error) {
+    console.error(`Error fetching recommendation trends for ${symbol}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Analyst price targets — free tier
+ */
+export async function getPriceTarget(symbol: string): Promise<PriceTarget | null> {
+  try {
+    const response = await fetch(
+      `${FINNHUB_BASE_URL}/stock/price-target?symbol=${symbol}&token=${FINNHUB_API_KEY}`
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data || typeof data.targetMean !== 'number') return null;
+    return {
+      targetHigh: data.targetHigh,
+      targetLow: data.targetLow,
+      targetMean: data.targetMean,
+      targetMedian: data.targetMedian,
+    };
+  } catch (error) {
+    console.error(`Error fetching price target for ${symbol}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Recent company news (last 7 days) — free tier
+ */
+export async function getCompanyNews(symbol: string, days = 7): Promise<CompanyNewsItem[]> {
+  try {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+
+    const response = await fetch(
+      `${FINNHUB_BASE_URL}/company-news?symbol=${symbol}&from=${fmt(from)}&to=${fmt(to)}&token=${FINNHUB_API_KEY}`
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!Array.isArray(data)) return [];
+    return data.slice(0, 8).map((item) => ({
+      headline: item.headline,
+      summary: item.summary,
+      source: item.source,
+      datetime: item.datetime,
+      url: item.url,
+    }));
+  } catch (error) {
+    console.error(`Error fetching company news for ${symbol}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Basic financial metrics incl. 52-week range, volume averages, valuation — free tier
+ */
+export async function getBasicFinancials(symbol: string): Promise<BasicFinancials | null> {
+  try {
+    const response = await fetch(
+      `${FINNHUB_BASE_URL}/stock/metric?symbol=${symbol}&metric=all&token=${FINNHUB_API_KEY}`
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    const m = data?.metric;
+    if (!m) return null;
+    return {
+      fiftyTwoWeekHigh: m['52WeekHigh'],
+      fiftyTwoWeekLow: m['52WeekLow'],
+      tenDayAverageVolume: m['10DayAverageTradingVolume'],
+      threeMonthAverageVolume: m['3MonthAverageTradingVolume'],
+      peBasicExclExtraTTM: m['peBasicExclExtraTTM'],
+      epsTTM: m['epsTTM'],
+      beta: m['beta'],
+      priceRelativeToSP500_52Week: m['priceRelativeToS&P50052Week'],
+    };
+  } catch (error) {
+    console.error(`Error fetching basic financials for ${symbol}:`, error);
+    return null;
+  }
+}
+
 /**
  * Format price change for display
  */

@@ -32,6 +32,7 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
   const [confidence, setConfidence] = useState(0);
   const [reasoning, setReasoning] = useState('');
   const [isFallback, setIsFallback] = useState(false);
+  const [quantSignal, setQuantSignal] = useState<{ score: number; label: string; factors: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -149,6 +150,7 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
           setConfidence(analysisData.analysis.confidence);
           setReasoning(analysisData.analysis.reasoning);
           setIsFallback(!!analysisData.analysis.isFallback);
+          setQuantSignal(analysisData.analysis.quantSignal || null);
         }
       } else {
         setAnalysisError('AI analysis failed. Please try again.');
@@ -417,6 +419,31 @@ export default function StockDetailViewAI({ symbol, onClose }: StockDetailViewAI
                   {reasoning}
                 </p>
               </motion.div>
+
+              {/* Quant Engine Signal */}
+              {quantSignal && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="bg-gray-900 border-2 border-gray-700 rounded-xl p-6"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-300">Quant Signal</h3>
+                    <span className="text-sm font-bold text-[#cd7f32]">
+                      {quantSignal.label.replace('_', ' ')} ({quantSignal.score > 0 ? '+' : ''}{quantSignal.score})
+                    </span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {quantSignal.factors.map((factor, i) => (
+                      <li key={i} className="text-sm text-gray-400 flex items-start gap-2">
+                        <span className="text-[#cd7f32] mt-1">•</span>
+                        <span>{factor}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
 
               {/* Action Button */}
               <motion.div
