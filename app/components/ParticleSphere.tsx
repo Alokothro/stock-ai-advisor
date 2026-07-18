@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Particle {
   theta: number;
@@ -26,8 +27,15 @@ const BRONZE_SHADES = [
   [222, 184, 135],
 ];
 
+const EXPLODE_CLICK_THRESHOLD = 5;
+const EXPLODE_CLICK_WINDOW_MS = 1200;
+const EXPLODE_DURATION_MS = 1800;
+
 export default function ParticleSphere({ size = 260 }: { size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const clickTimestamps = useRef<number[]>([]);
+  const [exploding, setExploding] = useState(false);
+  const [explodeOrigin, setExplodeOrigin] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -117,11 +125,122 @@ export default function ParticleSphere({ size = 260 }: { size?: number }) {
     return () => cancelAnimationFrame(rafId);
   }, [size]);
 
+  const handleClick = useCallback(() => {
+    const now = Date.now();
+    clickTimestamps.current = clickTimestamps.current.filter((ts) => now - ts < EXPLODE_CLICK_WINDOW_MS);
+    clickTimestamps.current.push(now);
+
+    if (clickTimestamps.current.length >= EXPLODE_CLICK_THRESHOLD) {
+      clickTimestamps.current = [];
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        setExplodeOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      }
+      setExploding(true);
+      setTimeout(() => setExploding(false), EXPLODE_DURATION_MS);
+    }
+  }, []);
+
   return (
+    <>
+      <canvas
+        ref={canvasRef}
+        onClick={handleClick}
+        style={{ width: size, height: size, cursor: 'pointer' }}
+        className="mx-auto"
+      />
+      {exploding && <ExplosionOverlay origin={explodeOrigin} />}
+    </>
+  );
+}
+
+interface ExplodingParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  shade: number;
+  rotationSpeed: number;
+}
+
+function ExplosionOverlay({ origin }: { origin: { x: number; y: number } }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const particleCount = 1400;
+    const particles: ExplodingParticle[] = Array.from({ length: particleCount }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const velocity = 4 + Math.random() * 22;
+      return {
+        x: origin.x,
+        y: origin.y,
+        vx: Math.cos(angle) * velocity,
+        vy: Math.sin(angle) * velocity,
+        size: Math.random() * 3 + 0.8,
+        shade: Math.floor(Math.random() * BRONZE_SHADES.length),
+        rotationSpeed: (Math.random() - 0.5) * 0.2,
+      };
+    });
+
+    let startTime: number | null = null;
+    let rafId: number;
+
+    const render = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(1, elapsed / EXPLODE_DURATION_MS);
+
+      ctx.clearRect(0, 0, width, height);
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15; // gravity
+        p.vx *= 0.985; // drag
+
+        const alpha = Math.max(0, 1 - progress * 1.1);
+        const [r, g, b] = BRONZE_SHADES[p.shade];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.3, p.size * (1 - progress * 0.3)), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        ctx.fill();
+      }
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(render);
+      }
+    };
+
+    rafId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(rafId);
+  }, [origin]);
+
+  return createPortal(
     <canvas
       ref={canvasRef}
-      style={{ width: size, height: size }}
-      className="mx-auto"
-    />
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        pointerEvents: 'none',
+        zIndex: 9999,
+      }}
+    />,
+    document.body
   );
 }
