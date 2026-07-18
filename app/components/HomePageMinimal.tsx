@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import SP500DashboardMinimal from './SP500DashboardMinimal';
 import StockDetailViewAI from './StockDetailViewAI';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SP500 } from '../constants/sp500';
 
 interface HomePageMinimalProps {
   user: { username?: string; email?: string };
@@ -14,6 +15,19 @@ interface HomePageMinimalProps {
 export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps) {
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const searchMatches = searchQuery.trim()
+    ? SP500.filter(
+        (stock) =>
+          stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          stock.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 8)
+    : [];
+
+  const handleSelectFromSearch = (symbol: string) => {
+    setSelectedStock(symbol);
+    setSearchQuery('');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
@@ -53,6 +67,21 @@ export default function HomePageMinimal({ user, signOut }: HomePageMinimalProps)
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-4 text-lg bg-white dark:bg-black border-2 border-gray-300 dark:border-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#cd7f32] focus:border-transparent dark:text-white placeholder-gray-400"
             />
+
+            {searchMatches.length > 0 && (
+              <div className="absolute top-full mt-2 w-full bg-white dark:bg-black border-2 border-gray-300 dark:border-white rounded-xl shadow-lg overflow-hidden z-10">
+                {searchMatches.map((stock) => (
+                  <button
+                    key={stock.symbol}
+                    onClick={() => handleSelectFromSearch(stock.symbol)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors cursor-pointer"
+                  >
+                    <span className="font-semibold text-gray-900 dark:text-white">{stock.symbol}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 truncate ml-3">{stock.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

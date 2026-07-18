@@ -1,0 +1,1143 @@
+{
+  "auth": {
+    "user_pool_id": "us-east-1_ol0PMfKLE",
+    "aws_region": "us-east-1",
+    "user_pool_client_id": "67jmn7ijch4ev0ub6h25qjbc8r",
+    "identity_pool_id": "us-east-1:c0de8dd2-c220-4e8f-8f19-a2b50b19c469",
+    "mfa_methods": [],
+    "standard_required_attributes": [
+      "email"
+    ],
+    "username_attributes": [
+      "email"
+    ],
+    "user_verification_types": [
+      "email"
+    ],
+    "groups": [],
+    "mfa_configuration": "NONE",
+    "password_policy": {
+      "min_length": 8,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_symbols": true,
+      "require_uppercase": true
+    },
+    "unauthenticated_identities_enabled": true
+  },
+  "data": {
+    "url": "https://r3yij7i2yrcjfijftb6n2zxhxy.appsync-api.us-east-1.amazonaws.com/graphql",
+    "aws_region": "us-east-1",
+    "api_key": "da2-svldkyf4evej5hdugpm75s4sse",
+    "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
+    "authorization_types": [
+      "API_KEY",
+      "AWS_IAM"
+    ],
+    "model_introspection": {
+      "version": 1,
+      "models": {
+        "Portfolio": {
+          "name": "Portfolio",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "symbol": {
+              "name": "symbol",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "assetType": {
+              "name": "assetType",
+              "isArray": false,
+              "type": {
+                "enum": "PortfolioAssetType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "purchasePrice": {
+              "name": "purchasePrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "purchaseDate": {
+              "name": "purchaseDate",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "currentPrice": {
+              "name": "currentPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "profitLoss": {
+              "name": "profitLoss",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "profitLossPercentage": {
+              "name": "profitLossPercentage",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Portfolios",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "userId",
+                  "symbol"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "identityClaim": "cognito:username"
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "userId",
+            "sortKeyFieldNames": [
+              "symbol"
+            ]
+          }
+        },
+        "Watchlist": {
+          "name": "Watchlist",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "symbol": {
+              "name": "symbol",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "assetType": {
+              "name": "assetType",
+              "isArray": false,
+              "type": {
+                "enum": "WatchlistAssetType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "currentPrice": {
+              "name": "currentPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "priceChange24h": {
+              "name": "priceChange24h",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "percentChange24h": {
+              "name": "percentChange24h",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "alertPrice": {
+              "name": "alertPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notes": {
+              "name": "notes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Watchlists",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "userId",
+                  "symbol"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "identityClaim": "cognito:username"
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "userId",
+            "sortKeyFieldNames": [
+              "symbol"
+            ]
+          }
+        },
+        "Analysis": {
+          "name": "Analysis",
+          "fields": {
+            "symbol": {
+              "name": "symbol",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "assetType": {
+              "name": "assetType",
+              "isArray": false,
+              "type": {
+                "enum": "AnalysisAssetType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "timestamp": {
+              "name": "timestamp",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "recommendation": {
+              "name": "recommendation",
+              "isArray": false,
+              "type": {
+                "enum": "AnalysisRecommendation"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "confidenceScore": {
+              "name": "confidenceScore",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "technicalScore": {
+              "name": "technicalScore",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "fundamentalScore": {
+              "name": "fundamentalScore",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sentimentScore": {
+              "name": "sentimentScore",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "priceTarget": {
+              "name": "priceTarget",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "stopLoss": {
+              "name": "stopLoss",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "reasoning": {
+              "name": "reasoning",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "indicators": {
+              "name": "indicators",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "riskLevel": {
+              "name": "riskLevel",
+              "isArray": false,
+              "type": {
+                "enum": "AnalysisRiskLevel"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Analyses",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "symbol",
+                  "timestamp"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "public",
+                    "provider": "iam",
+                    "operations": [
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "symbol",
+            "sortKeyFieldNames": [
+              "timestamp"
+            ]
+          }
+        },
+        "MarketData": {
+          "name": "MarketData",
+          "fields": {
+            "symbol": {
+              "name": "symbol",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "assetType": {
+              "name": "assetType",
+              "isArray": false,
+              "type": {
+                "enum": "MarketDataAssetType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "currentPrice": {
+              "name": "currentPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "openPrice": {
+              "name": "openPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "highPrice": {
+              "name": "highPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lowPrice": {
+              "name": "lowPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "closePrice": {
+              "name": "closePrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "volume": {
+              "name": "volume",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "marketCap": {
+              "name": "marketCap",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "priceChange24h": {
+              "name": "priceChange24h",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "percentChange24h": {
+              "name": "percentChange24h",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "week52High": {
+              "name": "week52High",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "week52Low": {
+              "name": "week52Low",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastUpdated": {
+              "name": "lastUpdated",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "MarketData",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "symbol"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "public",
+                    "provider": "iam",
+                    "operations": [
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "symbol",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Alert": {
+          "name": "Alert",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "symbol": {
+              "name": "symbol",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "alertType": {
+              "name": "alertType",
+              "isArray": false,
+              "type": {
+                "enum": "AlertAlertType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "threshold": {
+              "name": "threshold",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "isActive": {
+              "name": "isActive",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "triggeredAt": {
+              "name": "triggeredAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Alerts",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "identityClaim": "cognito:username"
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "UserStockPreferences": {
+          "name": "UserStockPreferences",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": true,
+              "attributes": []
+            },
+            "selectedStocks": {
+              "name": "selectedStocks",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "dailyInsightsOptIn": {
+              "name": "dailyInsightsOptIn",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "alertPreferences": {
+              "name": "alertPreferences",
+              "isArray": false,
+              "type": {
+                "nonModel": "UserStockPreferencesAlertPreferences"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "notificationSettings": {
+              "name": "notificationSettings",
+              "isArray": false,
+              "type": {
+                "nonModel": "UserStockPreferencesNotificationSettings"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "portfolioMetrics": {
+              "name": "portfolioMetrics",
+              "isArray": false,
+              "type": {
+                "nonModel": "UserStockPreferencesPortfolioMetrics"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastAnalysisDate": {
+              "name": "lastAnalysisDate",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          },
+          "syncable": true,
+          "pluralName": "UserStockPreferences",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "identityClaim": "cognito:username"
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "AnalysisHistory": {
+          "name": "AnalysisHistory",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "timestamp": {
+              "name": "timestamp",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "stocksAnalyzed": {
+              "name": "stocksAnalyzed",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "topGainer": {
+              "name": "topGainer",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "topLoser": {
+              "name": "topLoser",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "analysis": {
+              "name": "analysis",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailSent": {
+              "name": "emailSent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "AnalysisHistories",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "userId",
+                  "timestamp"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "cognito:username"
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "userId",
+            "sortKeyFieldNames": [
+              "timestamp"
+            ]
+          }
+        }
+      },
+      "enums": {
+        "PortfolioAssetType": {
+          "name": "PortfolioAssetType",
+          "values": [
+            "STOCK",
+            "CRYPTO"
+          ]
+        },
+        "WatchlistAssetType": {
+          "name": "WatchlistAssetType",
+          "values": [
+            "STOCK",
+            "CRYPTO"
+          ]
+        },
+        "AnalysisAssetType": {
+          "name": "AnalysisAssetType",
+          "values": [
+            "STOCK",
+            "CRYPTO"
+          ]
+        },
+        "AnalysisRecommendation": {
+          "name": "AnalysisRecommendation",
+          "values": [
+            "STRONG_BUY",
+            "BUY",
+            "HOLD",
+            "SELL",
+            "STRONG_SELL"
+          ]
+        },
+        "AnalysisRiskLevel": {
+          "name": "AnalysisRiskLevel",
+          "values": [
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "VERY_HIGH"
+          ]
+        },
+        "MarketDataAssetType": {
+          "name": "MarketDataAssetType",
+          "values": [
+            "STOCK",
+            "CRYPTO"
+          ]
+        },
+        "AlertAlertType": {
+          "name": "AlertAlertType",
+          "values": [
+            "PRICE_ABOVE",
+            "PRICE_BELOW",
+            "PERCENT_CHANGE",
+            "AI_SIGNAL"
+          ]
+        },
+        "UserStockPreferencesNotificationSettingsFrequency": {
+          "name": "UserStockPreferencesNotificationSettingsFrequency",
+          "values": [
+            "DAILY",
+            "WEEKLY",
+            "REALTIME"
+          ]
+        }
+      },
+      "nonModels": {
+        "UserStockPreferencesAlertPreferences": {
+          "name": "UserStockPreferencesAlertPreferences",
+          "fields": {
+            "priceThreshold": {
+              "name": "priceThreshold",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "volatilityAlert": {
+              "name": "volatilityAlert",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "earningsAlert": {
+              "name": "earningsAlert",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "UserStockPreferencesNotificationSettings": {
+          "name": "UserStockPreferencesNotificationSettings",
+          "fields": {
+            "emailEnabled": {
+              "name": "emailEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "smsEnabled": {
+              "name": "smsEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "pushEnabled": {
+              "name": "pushEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "frequency": {
+              "name": "frequency",
+              "isArray": false,
+              "type": {
+                "enum": "UserStockPreferencesNotificationSettingsFrequency"
+              },
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "UserStockPreferencesPortfolioMetrics": {
+          "name": "UserStockPreferencesPortfolioMetrics",
+          "fields": {
+            "totalValue": {
+              "name": "totalValue",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "dailyChange": {
+              "name": "dailyChange",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "weeklyChange": {
+              "name": "weeklyChange",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "monthlyChange": {
+              "name": "monthlyChange",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        }
+      }
+    }
+  },
+  "version": "1.4",
+  "custom": {
+    "AI_API_ENDPOINT": "https://jd3w2iybz3yhyekhlhyqepbd5e0kzbnu.lambda-url.us-east-1.on.aws/",
+    "PORTFOLIO_API_ENDPOINT": "https://vuu4gikyakc7s5au4fxjo4lzlq0liogh.lambda-url.us-east-1.on.aws/",
+    "QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/241533160040/user-daily-analysis-queue",
+    "QUEUE_NAME": "user-daily-analysis-queue"
+  }
+}
